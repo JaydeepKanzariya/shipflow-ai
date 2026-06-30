@@ -1,0 +1,22 @@
+# Normalize line endings: store everything as LF in the repo.
+# Prevents CRLF/LF churn between Windows dev and Linux (Vercel) builds.
+* text=auto eol=lf
+
+# Files that must stay LF regardless of platform
+*.sh text eol=lf
+
+# Lockfiles — keep LF, mark as generated so diffs collapse in review
+pnpm-lock.yaml -diff linguist-generated
+
+# Binary assets — never touch their bytes
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.svg text eol=lf
+*.woff binary
+*.woff2 binary
+*.zst binary
+*.node binary
