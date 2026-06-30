@@ -1,0 +1,20 @@
+{
+  "name": "@shipflow/auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@shipflow/db": "workspace:*"
+  },
+  "devDependencies": {
+    "@shipflow/tsconfig": "workspace:*",
+    "@types/node": "^20",
+    "typescript": "^5.7.3"
+  }
+}

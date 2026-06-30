@@ -1,0 +1,26 @@
+{
+  "name": "@shipflow/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.3.1"
+  },
+  "devDependencies": {
+    "@shipflow/tsconfig": "workspace:*",
+    "@types/node": "^20",
+    "prisma": "^6.3.1",
+    "typescript": "^5.7.3"
+  }
+}

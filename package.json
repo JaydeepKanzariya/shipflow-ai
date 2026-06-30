@@ -2,25 +2,24 @@
   "name": "shipflow-ai",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=20.9.0"
   },
-  "dependencies": {
-    "next": "16.2.9",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "turbo run db:generate",
+    "db:push": "pnpm --filter @shipflow/db db:push",
+    "db:migrate": "pnpm --filter @shipflow/db db:migrate",
+    "db:studio": "pnpm --filter @shipflow/db db:studio"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.9",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "prettier": "^3.4.2",
+    "turbo": "^2.5.8",
+    "typescript": "^5.7.3"
   }
 }

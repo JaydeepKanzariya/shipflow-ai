@@ -1,0 +1,25 @@
+{
+  "name": "@shipflow/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./trpc": "./src/trpc.ts",
+    "./root": "./src/root.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@shipflow/db": "workspace:*",
+    "@trpc/server": "^11.0.0",
+    "superjson": "^2.2.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@shipflow/tsconfig": "workspace:*",
+    "@types/node": "^20",
+    "typescript": "^5.7.3"
+  }
+}

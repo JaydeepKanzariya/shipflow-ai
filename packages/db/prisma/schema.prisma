@@ -1,0 +1,539 @@
+// ShipFlow AI — data model
+// Multi-tenant: every tenant-scoped row carries organizationId and is
+// filtered by the caller's active org membership in the tRPC layer.
+
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../generated/client"
+  previewFeatures = []
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Identity & tenancy (BetterAuth-compatible core tables)
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sessions    Session[]
+  accounts    Account[]
+  memberships Membership[]
+
+  // Authored / assigned domain records
+  featureRequests FeatureRequest[] @relation("RequestedBy")
+  approvedPrds    Prd[]            @relation("PrdApprovedBy")
+  assignedTasks   Task[]           @relation("TaskAssignee")
+  reviewsAuthored Review[]         @relation("ReviewAuthor")
+  auditEvents     AuditEvent[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  // Active organization for this session (drives tenant scoping).
+  activeOrganizationId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+enum Plan {
+  FREE
+  PRO
+  SCALE
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logo      String?
+  plan      Plan     @default(FREE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships     Membership[]
+  projects        Project[]
+  repositories    Repository[]
+  featureRequests FeatureRequest[]
+  subscription    Subscription?
+  usageCounters   UsageCounter[]
+  auditEvents     AuditEvent[]
+
+  @@map("organization")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+  REVIEWER
+}
+
+model Membership {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  role           Role     @default(MEMBER)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@map("membership")
+}
+
+// ---------------------------------------------------------------------------
+// Billing (Razorpay)
+// ---------------------------------------------------------------------------
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  PAUSED
+  CREATED
+}
+
+model Subscription {
+  id                     String             @id @default(cuid())
+  organizationId         String             @unique
+  plan                   Plan               @default(FREE)
+  status                 SubscriptionStatus @default(CREATED)
+  razorpayCustomerId     String?
+  razorpaySubscriptionId String?            @unique
+  razorpayPlanId         String?
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean            @default(false)
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("subscription")
+}
+
+// Per-org, per-period usage counters (AI review credits, repo count, etc.)
+model UsageCounter {
+  id             String   @id @default(cuid())
+  organizationId String
+  metric         String // e.g. "ai_review_credits", "repositories", "feature_requests"
+  used           Int      @default(0)
+  limit          Int // -1 means unlimited
+  periodStart    DateTime @default(now())
+  periodEnd      DateTime?
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, metric, periodStart])
+  @@index([organizationId, metric])
+  @@map("usage_counter")
+}
+
+// ---------------------------------------------------------------------------
+// Product domain
+// ---------------------------------------------------------------------------
+
+model Project {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repositories    Repository[]
+  featureRequests FeatureRequest[]
+
+  @@index([organizationId])
+  @@map("project")
+}
+
+model Repository {
+  id             String   @id @default(cuid())
+  organizationId String
+  projectId      String
+  owner          String // GitHub owner (org/user)
+  name           String // GitHub repo name
+  fullName       String // "owner/name"
+  defaultBranch  String   @default("main")
+  installationId String? // GitHub App installation id
+  githubRepoId   String? // numeric GitHub repo id
+  private        Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  pullRequests PullRequest[]
+  analyses     RepoAnalysis[]
+
+  @@unique([organizationId, fullName])
+  @@index([projectId])
+  @@map("repository")
+}
+
+// AI "Repository analysis" — grounds later PR reviews in repo conventions.
+model RepoAnalysis {
+  id           String   @id @default(cuid())
+  repositoryId String
+  commitSha    String?
+  summary      String   @db.Text
+  // Structured findings: stack, structure, conventions, entry points, risks.
+  details      Json
+  createdAt    DateTime @default(now())
+
+  repository Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  @@index([repositoryId])
+  @@map("repo_analysis")
+}
+
+enum RequestSource {
+  EMAIL
+  TICKET
+  CALL
+  MANUAL
+  API
+}
+
+// The feature state machine that drives the whole UI.
+enum FeatureStatus {
+  DISCOVERY
+  CLARIFYING
+  REJECTED // already exists / shouldn't be built
+  PRD_DRAFT
+  PRD_APPROVED
+  TASKS_READY
+  IN_DEVELOPMENT
+  IN_AI_REVIEW
+  FIX_NEEDED
+  READY_FOR_APPROVAL
+  APPROVED
+  SHIPPED
+}
+
+model FeatureRequest {
+  id             String        @id @default(cuid())
+  organizationId String
+  projectId      String
+  title          String
+  rawText        String        @db.Text
+  source         RequestSource @default(MANUAL)
+  status         FeatureStatus @default(DISCOVERY)
+  requesterEmail String?
+  requestedById  String?
+  // AI clarifying questions + collected answers, and educate/decision notes.
+  clarifyingQA   Json?
+  decisionNote   String?       @db.Text
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  requestedBy     User?            @relation("RequestedBy", fields: [requestedById], references: [id])
+  prd             Prd?
+  tasks           Task[]
+  pullRequests    PullRequest[]
+  inboundMessages InboundMessage[]
+  workflowRuns    WorkflowRun[]
+
+  @@index([organizationId])
+  @@index([projectId])
+  @@index([status])
+  @@map("feature_request")
+}
+
+// Raw inbound from email/ticket/call ingestion that created a request.
+model InboundMessage {
+  id               String        @id @default(cuid())
+  organizationId   String
+  featureRequestId String?
+  source           RequestSource
+  fromAddress      String?
+  subject          String?
+  body             String        @db.Text
+  raw              Json?
+  createdAt        DateTime      @default(now())
+
+  featureRequest FeatureRequest? @relation(fields: [featureRequestId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@map("inbound_message")
+}
+
+model Prd {
+  id               String   @id @default(cuid())
+  featureRequestId String   @unique
+  version          Int      @default(1)
+  problemStatement String   @db.Text
+  goals            Json // string[]
+  nonGoals         Json // string[]
+  userStories      Json // { as, want, soThat }[]
+  acceptanceCriteria Json // { id, text }[]
+  edgeCases        Json // string[]
+  successMetrics   Json // string[]
+  approvedById     String?
+  approvedAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  featureRequest FeatureRequest @relation(fields: [featureRequestId], references: [id], onDelete: Cascade)
+  approvedBy     User?          @relation("PrdApprovedBy", fields: [approvedById], references: [id])
+
+  @@map("prd")
+}
+
+enum TaskStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+}
+
+model Task {
+  id               String     @id @default(cuid())
+  featureRequestId String
+  title            String
+  description      String     @db.Text
+  // References to PRD acceptance-criteria ids this task satisfies.
+  acceptanceRefs   Json // string[]
+  status           TaskStatus @default(BACKLOG)
+  order            Int        @default(0)
+  assigneeId       String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  featureRequest FeatureRequest @relation(fields: [featureRequestId], references: [id], onDelete: Cascade)
+  assignee       User?          @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  @@index([featureRequestId])
+  @@map("task")
+}
+
+enum PullRequestState {
+  OPEN
+  CLOSED
+  MERGED
+}
+
+model PullRequest {
+  id               String           @id @default(cuid())
+  organizationId   String
+  repositoryId     String
+  featureRequestId String?
+  number           Int
+  title            String
+  branch           String
+  baseBranch       String           @default("main")
+  headSha          String
+  state            PullRequestState @default(OPEN)
+  url              String
+  authorLogin      String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  repository     Repository      @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  featureRequest FeatureRequest? @relation(fields: [featureRequestId], references: [id], onDelete: SetNull)
+  reviews        Review[]
+
+  @@unique([repositoryId, number])
+  @@index([organizationId])
+  @@index([featureRequestId])
+  @@map("pull_request")
+}
+
+enum ReviewTrigger {
+  AI
+  HUMAN
+}
+
+enum ReviewVerdict {
+  APPROVED
+  CHANGES_REQUESTED
+  COMMENTED
+  PENDING
+}
+
+enum ReviewStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model Review {
+  id            String        @id @default(cuid())
+  pullRequestId String
+  trigger       ReviewTrigger @default(AI)
+  verdict       ReviewVerdict @default(PENDING)
+  status        ReviewStatus  @default(QUEUED)
+  summary       String?       @db.Text
+  headSha       String? // which commit this review covered
+  authorId      String? // human reviewer, when trigger=HUMAN
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  pullRequest PullRequest   @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
+  author      User?         @relation("ReviewAuthor", fields: [authorId], references: [id])
+  issues      ReviewIssue[]
+
+  @@index([pullRequestId])
+  @@map("review")
+}
+
+enum IssueSeverity {
+  BLOCKING
+  NON_BLOCKING
+}
+
+enum IssueCategory {
+  PRD
+  ACCEPTANCE
+  SECURITY
+  PERFORMANCE
+  EDGE_CASE
+  QUALITY
+}
+
+model ReviewIssue {
+  id        String        @id @default(cuid())
+  reviewId  String
+  severity  IssueSeverity
+  category  IssueCategory
+  title     String
+  body      String        @db.Text
+  // The *why* — required by spec ("explain why issues exist").
+  rationale String        @db.Text
+  suggestion String?      @db.Text
+  filePath  String?
+  line      Int?
+  // GitHub review-comment id, once posted to the PR.
+  githubCommentId String?
+  resolved  Boolean       @default(false)
+  createdAt DateTime      @default(now())
+
+  review Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@map("review_issue")
+}
+
+// ---------------------------------------------------------------------------
+// Async workflow visibility (Inngest)
+// ---------------------------------------------------------------------------
+
+enum WorkflowKind {
+  FEATURE_CLARIFY
+  PRD_GENERATE
+  TASKS_GENERATE
+  REPO_ANALYZE
+  PR_AI_REVIEW
+  RELEASE_READINESS
+}
+
+enum WorkflowState {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+model WorkflowRun {
+  id               String        @id @default(cuid())
+  organizationId   String
+  featureRequestId String?
+  kind             WorkflowKind
+  state            WorkflowState @default(QUEUED)
+  inngestRunId     String?
+  // Human-readable progress steps for in-app visibility.
+  progress         Json? // { step, label, status }[]
+  error            String?       @db.Text
+  startedAt        DateTime      @default(now())
+  completedAt      DateTime?
+
+  featureRequest FeatureRequest? @relation(fields: [featureRequestId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([featureRequestId])
+  @@map("workflow_run")
+}
+
+model AuditEvent {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  action         String // e.g. "feature.created", "prd.approved", "review.completed"
+  entityType     String
+  entityId       String
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@map("audit_event")
+}
