@@ -1,4 +1,11 @@
+import { config as loadEnv } from "dotenv";
+import { resolve } from "node:path";
 import type { NextConfig } from "next";
+
+// Load the monorepo-root .env so server code (Prisma, BetterAuth, AI SDK)
+// sees the shared variables. Next only auto-loads .env from the app dir,
+// but in this workspace the single source of truth lives at the repo root.
+loadEnv({ path: resolve(process.cwd(), "../../.env") });
 
 const nextConfig: NextConfig = {
   // Workspace packages are shipped as TS source and transpiled by the app.

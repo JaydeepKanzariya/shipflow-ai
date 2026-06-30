@@ -1,27 +1,27 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getSessionCookie } from "better-auth/cookies";
 
-// Next 16: middleware is now `proxy` (Node.js runtime). This is a thin gate —
-// it does a cheap session-cookie presence check and redirects unauthenticated
-// users away from app routes. Full auth/role checks happen in tRPC procedures.
-//
-// BetterAuth's session cookie name is wired in M2; until then this is a no-op
-// pass-through so the app boots.
+// Next 16: middleware is now `proxy` (Node.js runtime). Cheap optimistic gate
+// only — it checks for the presence of a session cookie and bounces obvious
+// unauthenticated access. Real authorization (membership, roles) is enforced
+// server-side in the org layout and in tRPC procedures.
 
-const SESSION_COOKIE = "better-auth.session_token";
+const PUBLIC_PATHS = new Set(["/", "/sign-in", "/sign-up"]);
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // App (tenant) routes live under /app/*; protect them once auth is wired.
-  const isProtected = pathname.startsWith("/app");
-  if (!isProtected) return NextResponse.next();
+  // Always allow API routes (auth handler, tRPC, webhooks) and public pages.
+  if (pathname.startsWith("/api") || PUBLIC_PATHS.has(pathname)) {
+    return NextResponse.next();
+  }
 
-  const hasSession = request.cookies.has(SESSION_COOKIE);
-  if (!hasSession) {
-    // M2 will enable this redirect; left here so the gate is in place.
-    // const url = new URL("/sign-in", request.url);
-    // return NextResponse.redirect(url);
+  // Everything else (/[orgSlug]/*, /onboarding, /post-auth) needs a session.
+  const sessionCookie = getSessionCookie(request);
+  if (!sessionCookie) {
+    const url = new URL("/sign-in", request.url);
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next();
@@ -29,7 +29,7 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Run on app routes; skip api, static assets, and metadata files.
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Run on everything except Next internals and static assets.
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

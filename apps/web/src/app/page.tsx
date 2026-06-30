@@ -1,36 +1,30 @@
-import { getServerApi } from "@/trpc/server";
-import { HealthCheck } from "./health-check";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
-export default async function Home() {
-  // Server-side tRPC caller (no HTTP round-trip) — exercises the RSC path.
-  const api = await getServerApi();
-  const serverPing = await api.health.ping();
-
+export default function Home() {
   return (
-    <main className="mx-auto flex max-w-2xl flex-1 flex-col justify-center gap-6 p-8">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">ShipFlow AI</h1>
-        <p className="mt-2 text-white/60">
-          Feature request → PRD → Tasks → Code → AI Review → Approval → Ship.
-          Monorepo foundation is live.
+    <main className="mx-auto flex max-w-3xl flex-1 flex-col justify-center gap-8 px-6 py-24">
+      <div className="space-y-4">
+        <div className="inline-flex items-center rounded-full border px-3 py-1 text-xs text-muted-foreground">
+          AI-assisted product delivery
+        </div>
+        <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+          From feature request to production — without losing the thread.
+        </h1>
+        <p className="max-w-xl text-lg text-muted-foreground">
+          ShipFlow turns a request into a PRD, breaks it into tasks, reviews the
+          pull requests against the requirements, and gets a human to approve the
+          release. Idea → PRD → Tasks → Code → AI Review → Approval → Ship.
         </p>
       </div>
-
-      <div className="rounded-lg border border-white/10 bg-white/5 p-4 text-sm">
-        <p className="font-mono">
-          server tRPC:{" "}
-          <span className="text-green-400">
-            ok · {serverPing.service} · {serverPing.time}
-          </span>
-        </p>
+      <div className="flex gap-3">
+        <Button asChild size="lg">
+          <Link href="/sign-up">Get started</Link>
+        </Button>
+        <Button asChild size="lg" variant="outline">
+          <Link href="/sign-in">Sign in</Link>
+        </Button>
       </div>
-
-      <HealthCheck />
-
-      <p className="text-xs text-white/40">
-        M1 complete: pnpm + Turborepo workspace, Prisma data model, tRPC wired
-        end to end (server caller + client React Query).
-      </p>
     </main>
   );
 }

@@ -4,17 +4,23 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@shipflow/db": "workspace:*"
+    "@shipflow/db": "workspace:*",
+    "better-auth": "^1.2.7"
   },
   "devDependencies": {
     "@shipflow/tsconfig": "workspace:*",
     "@types/node": "^20",
+    "react": "19.2.4",
     "typescript": "^5.7.3"
+  },
+  "peerDependencies": {
+    "react": "^19"
   }
 }

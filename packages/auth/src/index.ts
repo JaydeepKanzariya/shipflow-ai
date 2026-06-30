@@ -1,5 +1,6 @@
-// Placeholder for the BetterAuth configuration (wired in M2).
-// Exposes the shape the API/web layers will consume so imports resolve today.
+import { auth } from "./auth";
+
+export { auth, type Auth } from "./auth";
 
 export interface AuthContext {
   userId: string;
@@ -7,11 +8,17 @@ export interface AuthContext {
 }
 
 /**
- * Resolves the auth principal from request headers. Stubbed until M2 wires
- * BetterAuth; returns null (unauthenticated) for now.
+ * Resolves the auth principal from request headers via BetterAuth.
+ * Returns null when unauthenticated. Consumed by the tRPC context factory.
  */
 export async function getAuthFromHeaders(
-  _headers: Headers,
+  headers: Headers,
 ): Promise<AuthContext | null> {
-  return null;
+  const session = await auth.api.getSession({ headers });
+  if (!session?.user) return null;
+
+  return {
+    userId: session.user.id,
+    activeOrganizationId: session.session.activeOrganizationId ?? null,
+  };
 }

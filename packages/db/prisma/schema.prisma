@@ -29,7 +29,8 @@ model User {
 
   sessions    Session[]
   accounts    Account[]
-  memberships Membership[]
+  members     Member[]
+  invitations Invitation[] @relation("InvitationInviter")
 
   // Authored / assigned domain records
   featureRequests FeatureRequest[] @relation("RequestedBy")
@@ -104,11 +105,14 @@ model Organization {
   name      String
   slug      String   @unique
   logo      String?
+  // BetterAuth org plugin stores arbitrary JSON-string metadata here.
+  metadata  String?
   plan      Plan     @default(FREE)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships     Membership[]
+  members         Member[]
+  invitations     Invitation[]
   projects        Project[]
   repositories    Repository[]
   featureRequests FeatureRequest[]
@@ -119,6 +123,9 @@ model Organization {
   @@map("organization")
 }
 
+// App-level role values. Stored as a string on Member.role because the
+// BetterAuth organization plugin persists roles as a (comma-separated)
+// string, not a DB enum. Role values are validated in the app layer.
 enum Role {
   OWNER
   ADMIN
@@ -126,11 +133,12 @@ enum Role {
   REVIEWER
 }
 
-model Membership {
+model Member {
   id             String   @id @default(cuid())
   organizationId String
   userId         String
-  role           Role     @default(MEMBER)
+  // BetterAuth-managed role string (e.g. "owner", "admin", "member").
+  role           String   @default("member")
   createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -138,7 +146,26 @@ model Membership {
 
   @@unique([organizationId, userId])
   @@index([userId])
-  @@map("membership")
+  @@map("member")
+}
+
+// Pending invitations to join an organization (BetterAuth org plugin).
+model Invitation {
+  id             String   @id @default(cuid())
+  organizationId String
+  email          String
+  role           String?
+  status         String   @default("pending")
+  inviterId      String
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  inviter      User         @relation("InvitationInviter", fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([email])
+  @@map("invitation")
 }
 
 // ---------------------------------------------------------------------------

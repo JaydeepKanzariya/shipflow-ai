@@ -6,4 +6,4 @@ export {
   type AuthContext,
   type CreateContextOptions,
 } from "./context";
-export { createCallerFactory } from "./trpc";
+export { createCallerFactory, roleProcedure, type OrgRole } from "./trpc";
