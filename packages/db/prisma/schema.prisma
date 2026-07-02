@@ -6,6 +6,9 @@ generator client {
   provider        = "prisma-client-js"
   output          = "../generated/client"
   previewFeatures = []
+  // "native" = local dev (Windows/mac); the rhel target is Vercel's Linux
+  // serverless runtime. Without it, the client fails to init in prod (500).
+  binaryTargets   = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
