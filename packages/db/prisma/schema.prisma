@@ -3,12 +3,15 @@
 // filtered by the caller's active org membership in the tRPC layer.
 
 generator client {
-  provider      = "prisma-client-js"
-  output        = "../generated/client"
-  // "native" = local dev (Windows/mac); rhel target is Vercel's Linux
-  // serverless runtime. Kept as a fallback; queries actually run through the
-  // Neon driver adapter (see src/client.ts), which avoids the native engine.
-  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  // Rust-free client (GA since 6.16): engineType "client" ships NO native
+  // query engine — queries run through the Neon driver adapter (src/client.ts).
+  // This is what makes it work on Vercel serverless: there is no
+  // libquery_engine .so.node to locate/bundle.
+  provider   = "prisma-client"
+  output     = "../generated/client"
+  engineType = "client"
+  runtime    = "nodejs"
+  moduleFormat = "cjs"
 }
 
 datasource db {
