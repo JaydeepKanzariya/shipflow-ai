@@ -1,4 +1,6 @@
+import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import { setActiveOrganization } from "@shipflow/auth";
 import { getServerApi } from "@/trpc/server";
 import { Sidebar } from "./_components/sidebar";
 import { Topbar } from "./_components/topbar";
@@ -24,6 +26,11 @@ export default async function OrgLayout({
     // NOT_FOUND or FORBIDDEN → don't reveal which.
     notFound();
   }
+
+  // Path-based tenancy: make the URL's org the session's active org so
+  // org-scoped tRPC procedures resolve the right tenant. Sets a cookie for
+  // subsequent requests on this navigation.
+  await setActiveOrganization(await headers(), org.id);
 
   const orgs = await api.organization.list();
 

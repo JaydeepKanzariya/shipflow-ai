@@ -49,30 +49,43 @@ function roleRank(role: string): number {
  * so downstream procedures can scope every query by tenant.
  */
 export const orgProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-  const organizationId = ctx.auth.activeOrganizationId;
-  if (!organizationId) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "No active organization selected.",
+  let organizationId = ctx.auth.activeOrganizationId;
+  let role: string | undefined;
+
+  if (organizationId) {
+    const member = await ctx.db.member.findFirst({
+      where: { userId: ctx.auth.userId, organizationId },
+      select: { role: true },
     });
+    if (member) role = member.role;
+    else organizationId = null; // active org set but not a member — fall through
   }
 
-  const member = await ctx.db.member.findFirst({
-    where: { userId: ctx.auth.userId, organizationId },
-    select: { role: true },
-  });
-  if (!member) {
-    throw new TRPCError({
-      code: "FORBIDDEN",
-      message: "You are not a member of the active organization.",
+  // Fallback: no (valid) active org on the session yet. Resolve the user's
+  // membership directly. Common on first navigation before the org layout has
+  // set the active org, and for single-org users. Prefer the oldest membership
+  // for determinism.
+  if (!organizationId || role === undefined) {
+    const member = await ctx.db.member.findFirst({
+      where: { userId: ctx.auth.userId },
+      orderBy: { createdAt: "asc" },
+      select: { role: true, organizationId: true },
     });
+    if (!member) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "You don't belong to any organization yet.",
+      });
+    }
+    organizationId = member.organizationId;
+    role = member.role;
   }
 
   return next({
     ctx: {
       ...ctx,
       organizationId,
-      role: member.role,
+      role,
     },
   });
 });

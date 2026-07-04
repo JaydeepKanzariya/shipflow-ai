@@ -3,7 +3,15 @@
 > A multi-tenant, AI-assisted product delivery platform.
 > Core loop: **Feature Request → PRD → Tasks → Code → AI Review → Fixes → Re-Review → Human Approval → Ship**
 
-> **Progress:** ✅ **M1 (monorepo foundation) complete & verified** — pnpm + Turborepo workspace, full Prisma data model, tRPC wired end-to-end (server caller + client React Query), `proxy.ts` auth gate. Up next: **M2 (Auth + tenancy)**. See §6 for the milestone sequence.
+> **Progress:**
+> - ✅ **M1 — Monorepo foundation** (pnpm + Turborepo, Prisma data model, tRPC end-to-end, proxy auth gate). *Deployed.*
+> - ✅ **M2 — Auth + multi-tenant orgs** (BetterAuth email/password + GitHub, organization plugin, org-scoped dashboard, tenancy in tRPC). *Deployed.*
+> - ✅ **M3 — Feature request → AI PRD** (discovery triage + PRD generation via Inngest workflows; AI SDK + Groq). Verified locally; see [M3-PLAN.md](M3-PLAN.md).
+> - ⏭️ **Next: M4 — Tasks + Kanban board.**
+>
+> See §6 for the full milestone sequence. Detailed per-milestone plans: [M2-PLAN.md](M2-PLAN.md), [M3-PLAN.md](M3-PLAN.md).
+>
+> _Note: the original data-model sketch below says `Membership`; the built schema renamed it to `Member` (+ added `Invitation`) to match BetterAuth's org plugin. The AI provider is Groq (not Claude) for now — swappable in one file._
 
 ---
 

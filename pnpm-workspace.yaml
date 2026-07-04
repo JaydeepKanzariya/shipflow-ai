@@ -3,8 +3,7 @@ packages:
   - "packages/*"
 
 # pnpm 11: approve dependency build scripts (replaces onlyBuiltDependencies).
-# Required so Prisma/sharp/native postinstalls run during `pnpm install`,
-# including in CI (Vercel) where ERR_PNPM_IGNORED_BUILDS is fatal.
+# Required so native/postinstall scripts run during install, including in CI.
 allowBuilds:
   "@prisma/client": true
   "@prisma/engines": true
@@ -12,3 +11,4 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+  protobufjs: true

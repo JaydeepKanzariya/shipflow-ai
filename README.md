@@ -6,7 +6,7 @@
 
 A multi-tenant SaaS where a customer/product-owner request is understood, clarified, turned into a structured PRD, broken into engineering tasks on a Kanban board, connected to a GitHub repository, reviewed by an AI QA/engineering reviewer against the requirements, sent back for fixes, re-reviewed until clean, and finally approved by a human before being marked shipped.
 
-> **Status:** Active build. **M1 (monorepo foundation) is complete and verified.** Later milestones (auth, PRD, tasks, GitHub, AI review, approval, billing) are in progress — see [docs/PLAN.md](docs/PLAN.md). Sections below marked _(planned: Mx)_ are scaffolded but not yet implemented.
+> **Status:** Active build. **M1 (monorepo), M2 (auth + multi-tenant orgs), and M3 (feature request → AI PRD) are complete and verified** — M1 & M2 are deployed live on Vercel. Later milestones (tasks/Kanban, GitHub, AI review, approval, billing) are in progress — see [docs/PLAN.md](docs/PLAN.md). Sections below marked _(planned: Mx)_ are scaffolded but not yet implemented.
 
 ---
 
@@ -18,10 +18,10 @@ A multi-tenant SaaS where a customer/product-owner request is understood, clarif
 | Web app | Next.js 16 (App Router, Turbopack, React 19) |
 | API | tRPC v11 (type-safe, end-to-end) |
 | Data | PostgreSQL + Prisma |
-| Auth | BetterAuth _(planned: M2)_ |
+| Auth | BetterAuth (email/password + GitHub, organization plugin) |
 | UI | shadcn/ui + Tailwind CSS v4 |
-| AI | Vercel AI SDK + Claude (`claude-opus-4-8`) _(planned: M3+)_ |
-| Async workflows | Inngest _(planned: M3+)_ |
+| AI | Vercel AI SDK + Groq (`llama-3.3-70b-versatile`); provider-swappable |
+| Async workflows | Inngest |
 | GitHub | Octokit (GitHub App + webhooks) _(planned: M5)_ |
 | Billing | Razorpay _(planned: M8)_ |
 | Deploy | Vercel |
@@ -41,26 +41,33 @@ shipflow-ai/
 │     └─ src/
 │        ├─ app/
 │        │  ├─ api/trpc/[trpc]/route.ts   # tRPC fetch adapter
-│        │  ├─ layout.tsx                 # wraps children in tRPC/React Query provider
-│        │  └─ page.tsx                   # health-check landing (M1)
-│        ├─ trpc/
-│        │  ├─ client.tsx                 # 'use client' provider + useTRPC hook
-│        │  └─ server.ts                  # server-side caller (RSC, no HTTP)
-│        └─ proxy.ts                      # auth gate (Next 16 middleware)
+│        │  ├─ api/auth/[...all]/route.ts # BetterAuth handler
+│        │  ├─ api/inngest/route.ts       # Inngest serve endpoint (workflows)
+│        │  ├─ (auth)/                     # sign-in / sign-up
+│        │  ├─ onboarding/                 # create workspace
+│        │  ├─ [orgSlug]/                  # org-scoped app (dashboard, features…)
+│        │  ├─ layout.tsx                  # theme + tRPC/React Query providers
+│        │  └─ page.tsx                    # landing page
+│        ├─ trpc/{client.tsx,server.ts}    # client provider + RSC server caller
+│        └─ proxy.ts                       # auth gate (Next 16 middleware)
 ├─ packages/
-│  ├─ db/         # @shipflow/db — Prisma schema + client singleton
+│  ├─ db/         # @shipflow/db — Prisma schema + Rust-free client (Neon adapter)
 │  ├─ api/        # @shipflow/api — tRPC root router, context, procedures
-│  ├─ auth/       # @shipflow/auth — BetterAuth config (stub today, M2)
-│  ├─ ui/         # @shipflow/ui — shared components + cn() util
+│  ├─ auth/       # @shipflow/auth — BetterAuth (server + client)
+│  ├─ ai/         # @shipflow/ai — AI SDK + Groq, Zod schemas, prompt modules
+│  ├─ jobs/       # @shipflow/jobs — Inngest client + workflow functions
+│  ├─ ui/         # @shipflow/ui — shared cn() util (shadcn lives in web)
 │  └─ tsconfig/   # @shipflow/tsconfig — shared TS base configs
-├─ docs/          # PLAN.md (roadmap), COMMANDS.md (cheat-sheet)
+├─ docs/          # PLAN.md (roadmap), COMMANDS.md, M2/M3 plans
 ├─ turbo.json     # task pipeline
 └─ pnpm-workspace.yaml
 ```
 
-**Type-safety spine:** `packages/api` exports the `AppRouter` type; `apps/web` imports it for a fully-typed client. `packages/db` generates Prisma types consumed everywhere. tRPC data is fetched two ways: a **server caller** (`trpc/server.ts`) for React Server Components (in-process, no HTTP) and a **client provider** (`trpc/client.tsx`) using TanStack Query for client components.
+**Type-safety spine:** `packages/api` exports the `AppRouter` type; `apps/web` imports it for a fully-typed client. `packages/db` generates Prisma types consumed everywhere. Zod schemas in `packages/ai` are the single contract for AI output, Prisma JSON fields, and tRPC IO. tRPC data is fetched two ways: a **server caller** (`trpc/server.ts`) for React Server Components (in-process, no HTTP) and a **client provider** (`trpc/client.tsx`) using TanStack Query for client components.
 
-**Multi-tenancy:** every tenant-scoped table carries `organizationId`; tRPC's `orgProcedure` surfaces the active org so queries are always tenant-scoped. Routing is path-based (`/[orgSlug]/…`).
+**Multi-tenancy:** every tenant-scoped table carries `organizationId`; tRPC's `orgProcedure` verifies membership and surfaces the active org so queries are always tenant-scoped. Routing is path-based (`/[orgSlug]/…`); the org layout syncs the session's active org to the URL.
+
+**Async AI:** tRPC mutations send Inngest events (never run AI inline); Inngest functions in `packages/jobs` execute the long work and mirror step-by-step progress to the `WorkflowRun` table for live in-app status.
 
 ---
 
@@ -87,11 +94,20 @@ pnpm db:generate
 # 4. Create the database tables
 pnpm db:push                # or `pnpm db:migrate` for migration history
 
-# 5. Run the dev server
+# 5. Run the app
 pnpm dev
+
+# 6. In a SECOND terminal — the Inngest dev server (runs AI workflows)
+npx inngest-cli@latest dev
 ```
 
-Open **http://localhost:3000** — the landing page shows a live **server tRPC** and **client tRPC** health check (both green when the API is wired correctly). The DB health check at `/api/trpc/health.db` turns green once `DATABASE_URL` is set and `db:push` has run.
+Open **http://localhost:3000**, sign up, create a workspace, and submit a
+feature request from **Feature Requests** — the AI will clarify or draft a PRD.
+Watch workflow runs at the Inngest dashboard **http://localhost:8288**.
+
+> The Inngest dev server (step 6) is required for AI workflows to run locally.
+> Without it, a submitted request stays stuck on "AI working…". See
+> [docs/COMMANDS.md](docs/COMMANDS.md) for the full local-dev workflow.
 
 ---
 
@@ -130,19 +146,20 @@ Copy `.env.example` to `.env`. All variables are loaded at the repo root and sha
 | `DATABASE_URL` | DB (now) | PostgreSQL connection string |
 | `DIRECT_URL` | migrations | Direct (non-pooled) URL; can equal `DATABASE_URL` locally |
 | `NEXT_PUBLIC_APP_URL` | web | e.g. `http://localhost:3000` |
-| `BETTER_AUTH_SECRET` / `BETTER_AUTH_URL` | auth (M2) | long random secret + app URL |
-| `GITHUB_APP_ID` / `GITHUB_APP_PRIVATE_KEY` / `GITHUB_APP_CLIENT_ID` / `GITHUB_APP_CLIENT_SECRET` / `GITHUB_WEBHOOK_SECRET` | GitHub (M5) | GitHub App credentials |
-| `ANTHROPIC_API_KEY` | AI (M3+) | Claude via AI SDK |
-| `INNGEST_EVENT_KEY` / `INNGEST_SIGNING_KEY` | workflows (M3+) | Inngest |
+| `BETTER_AUTH_SECRET` / `BETTER_AUTH_URL` | auth (now) | long random secret + app URL (no trailing slash) |
+| `GITHUB_APP_CLIENT_ID` / `GITHUB_APP_CLIENT_SECRET` | GitHub login (now) | GitHub OAuth app (for "Continue with GitHub") |
+| `GROQ_API_KEY` | AI (now) | free key at console.groq.com/keys |
+| `INNGEST_EVENT_KEY` / `INNGEST_SIGNING_KEY` | workflows (prod only) | Inngest Cloud; local dev needs neither |
+| `GITHUB_APP_ID` / `GITHUB_APP_PRIVATE_KEY` / `GITHUB_WEBHOOK_SECRET` | GitHub repos (M5) | GitHub App credentials |
 | `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` / `RAZORPAY_WEBHOOK_SECRET` | billing (M8) | Razorpay |
 
 ---
 
 ## Database schema notes
 
-Defined in [packages/db/prisma/schema.prisma](packages/db/prisma/schema.prisma). PostgreSQL via Prisma; the client is generated to `packages/db/generated/client` and re-exported from `@shipflow/db`.
+Defined in [packages/db/prisma/schema.prisma](packages/db/prisma/schema.prisma). PostgreSQL via Prisma using the **Rust-free client** (`engineType = "client"`) with the **Neon driver adapter** — no native query engine, which is what makes it work on Vercel serverless. The client is generated to `packages/db/generated/client` and re-exported from `@shipflow/db`.
 
-- **Identity & tenancy:** `User`, `Session`, `Account`, `Verification` (BetterAuth-compatible), `Organization` (workspace), `Membership` (user × org × role).
+- **Identity & tenancy:** `User`, `Session`, `Account`, `Verification` (BetterAuth), `Organization` (workspace), `Member` (user × org × role), `Invitation`.
 - **Billing:** `Subscription` (Razorpay), `UsageCounter` (per-org AI credits / repo limits / period).
 - **Product domain:** `Project` → `Repository` → `RepoAnalysis`; `FeatureRequest` (with a `FeatureStatus` state machine) → `Prd` → `Task` (Kanban) → `PullRequest` → `Review` → `ReviewIssue` (each issue carries a `rationale` — the _why_).
 - **Workflow visibility:** `WorkflowRun` (Inngest progress), `AuditEvent` (activity log).
@@ -156,23 +173,34 @@ Every tenant-scoped model carries `organizationId` and is indexed accordingly.
 
 Will use Octokit via a **GitHub App** (installation tokens) to connect repositories, receive webhook events (`pull_request`, `push`), fetch changed files/diffs, post review comments, and track PR/review status. Webhook signatures are verified with HMAC-SHA256 over the raw request body at `apps/web/src/app/api/webhooks/github/route.ts`. Setup steps (app creation, permissions, webhook URL) will be documented here once implemented.
 
-## Inngest workflows _(planned: M3+)_
+## Inngest workflows
 
-Long-running work runs as Inngest functions, served from `apps/web/src/app/api/inngest/route.ts`, with progress mirrored to the `WorkflowRun` table for in-app visibility:
+Long-running work runs as Inngest functions, served from `apps/web/src/app/api/inngest/route.ts`, with step-by-step progress mirrored to the `WorkflowRun` table for live in-app visibility. tRPC mutations send events; workflows do the heavy lifting so requests stay fast.
 
-- `feature/clarify` — requirement clarification, educate-or-reject, PRD generation
-- `prd/generate-tasks` — PRD → engineering tasks
-- `repo/analyze` — repository analysis to ground reviews
-- `pr/ai-review` — diff review against PRD/acceptance/tasks/security/perf/edge/quality (re-runs on new commits)
-- `feature/release-readiness` — production-readiness summary for human approval
+Implemented (M3):
+- `feature/clarify` — requirement clarification, educate-or-reject, or proceed
+- `prd/generate` — generate a structured PRD from the request + clarifying answers
 
-## AI features _(planned: M3+)_
+Planned:
+- `prd/generate-tasks` _(M4)_ — PRD → engineering tasks
+- `repo/analyze` _(M5)_ — repository analysis to ground reviews
+- `pr/ai-review` _(M6)_ — diff review vs PRD/acceptance/tasks/security/perf/edge/quality (re-runs on new commits)
+- `feature/release-readiness` _(M7)_ — production-readiness summary for human approval
 
-Powered by the Vercel AI SDK + Claude, all returning Zod-validated structured output (no free-text parsing), and every finding explains _why_:
+**Local dev:** run `npx inngest-cli@latest dev` alongside `pnpm dev` (dashboard at `http://localhost:8288`). **Production:** Inngest Cloud + `INNGEST_EVENT_KEY` / `INNGEST_SIGNING_KEY`.
 
-- Requirement clarification · PRD generation · Task generation · Repository analysis · Code review + QA validation · Release-readiness checks
+## AI features
 
-The reviewer acts as a **QA + engineering reviewer** (does the implementation satisfy the product requirements and is it production-ready), not a syntax checker. **Humans remain the final decision makers.**
+Powered by the Vercel AI SDK. Default provider is **Groq** (`llama-3.3-70b-versatile`, free); the provider is isolated to `packages/ai/src/model.ts`, so swapping to Gemini or Claude is a one-line change. All AI returns **Zod-validated structured output** (no free-text parsing).
+
+Implemented (M3):
+- **Requirement clarification** — decide clarify / educate / proceed, with follow-up questions
+- **PRD generation** — structured problem, goals, non-goals, user stories, acceptance criteria (with ids), edge cases, success metrics
+
+Planned:
+- Task generation _(M4)_ · Repository analysis _(M5)_ · Code review + QA validation _(M6)_ · Release-readiness checks _(M7)_
+
+The review agent (M6) will act as a **QA + engineering reviewer** (does the implementation satisfy the product requirements and is it production-ready), not a syntax checker, and every issue will explain _why_. **Humans remain the final decision makers.**
 
 ---
 

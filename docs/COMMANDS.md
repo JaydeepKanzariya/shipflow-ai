@@ -8,6 +8,32 @@ All commands run from the **repo root** (`d:\Jaydeep\shipflow-ai`) unless noted.
 
 ---
 
+## Local development (two terminals)
+
+Since M3, the app has **async workflows** (Inngest) that run PRD generation, etc.
+For those to execute locally you need **two processes running side by side**:
+
+**Terminal 1 — the app:**
+```bash
+pnpm dev
+```
+
+**Terminal 2 — the Inngest dev server** (runs the background workflows):
+```bash
+npx inngest-cli@latest dev
+```
+- It auto-discovers the app at `http://localhost:3000/api/inngest`.
+- Dashboard to watch runs/steps: **http://localhost:8288**
+- No account or keys needed for local dev.
+
+> If you only run `pnpm dev` (no Inngest), a submitted feature request will
+> sit stuck on "AI working…" forever, because nothing processes the workflow.
+
+Requires `GROQ_API_KEY` in `.env` for the AI steps (get a free key at
+https://console.groq.com/keys). See `.env.example` for all variables.
+
+---
+
 ## Everyday
 
 | Command | Description |
@@ -33,7 +59,8 @@ All commands run from the **repo root** (`d:\Jaydeep\shipflow-ai`) unless noted.
 ## Running a specific app or package
 
 Use pnpm's `--filter` to target one workspace. Package names:
-`@shipflow/web`, `@shipflow/api`, `@shipflow/db`, `@shipflow/auth`, `@shipflow/ui`.
+`@shipflow/web`, `@shipflow/api`, `@shipflow/db`, `@shipflow/auth`,
+`@shipflow/ai`, `@shipflow/jobs`, `@shipflow/ui`.
 
 ```bash
 # Web app only
@@ -60,7 +87,7 @@ pnpm turbo run build --filter=@shipflow/web...    # web + everything it depends 
 
 ## Verifying the API by hand (while `pnpm dev` runs)
 
-In a second terminal:
+In a separate terminal:
 
 ```bash
 # health.ping — no DB needed; returns ok:true
@@ -72,6 +99,12 @@ curl.exe "http://localhost:3000/api/trpc/health.db?input=%7B%7D"
 
 (`%7B%7D` is the URL-encoded empty input `{}` that the tRPC GET adapter expects.)
 
+## Watching AI workflows
+
+- Inngest dashboard (local): **http://localhost:8288** → Runs / Functions tab
+  shows each `feature-clarify` / `prd-generate` run, its steps, and any error.
+- In-app: a feature's detail page shows live "AI working…" progress.
+
 ---
 
 ## Troubleshooting
@@ -80,6 +113,9 @@ curl.exe "http://localhost:3000/api/trpc/health.db?input=%7B%7D"
 |---|---|
 | `pnpm: command not found` | `$env:Path = "$env:APPDATA\npm;$env:Path"` (PowerShell), or use `corepack pnpm …` |
 | `prisma generate` → `EPERM … query_engine-windows.dll.node` | A running dev server holds the DLL. Stop `next dev` / kill stray `node` processes, then retry. |
-| `ERR_PNPM_IGNORED_BUILDS` for sharp / prisma | `pnpm rebuild <pkg>` once; they're allow-listed in `pnpm-workspace.yaml`. |
+| `ERR_PNPM_IGNORED_BUILDS` for sharp / prisma / protobufjs | Approved in `pnpm-workspace.yaml` (`allowBuilds`); run `pnpm install` again, or `pnpm rebuild <pkg>`. |
 | Port 3000 in use (`EADDRINUSE`) | A previous dev server is still running — stop it, or run on another port: `pnpm --filter @shipflow/web dev -- --port 3001`. |
 | IDE can't find `@shipflow/tsconfig/base.json` | Reload window / restart the TS server; the workspace symlink + `exports` resolve it. |
+| Feature request stuck on "AI working…" forever | The Inngest dev server isn't running — start `npx inngest-cli@latest dev` in a second terminal. |
+| Workflow fails with a quota / `limit: 0` error | AI provider issue, not code. Check `GROQ_API_KEY` in `.env`; see the error at http://localhost:8288. |
+| Edited `.env` but change not picked up | Restart `pnpm dev` — env is loaded at boot (root `.env` via `next.config.ts`). |

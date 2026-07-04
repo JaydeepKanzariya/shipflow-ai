@@ -13,9 +13,11 @@ const workspaceRoot = resolve(process.cwd(), "../..");
 const nextConfig: NextConfig = {
   // Workspace packages are shipped as TS source and transpiled by the app.
   transpilePackages: [
+    "@shipflow/ai",
     "@shipflow/api",
     "@shipflow/auth",
     "@shipflow/db",
+    "@shipflow/jobs",
     "@shipflow/ui",
   ],
   // Keep Prisma's native query engine out of the server bundle.

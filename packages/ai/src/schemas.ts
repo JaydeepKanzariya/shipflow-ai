@@ -1,0 +1,66 @@
+import { z } from "zod";
+
+/**
+ * Output of the discovery triage (assessRequest). The agent decides whether
+ * the request needs clarification, is likely already solved (educate), or is
+ * clear enough to proceed straight to a PRD.
+ */
+export const ClarificationSchema = z.object({
+  decision: z.enum(["clarify", "educate", "proceed"]),
+  reasoning: z
+    .string()
+    .describe("Short explanation of why this decision was made."),
+  // Present when decision === "clarify": follow-up questions to gather context.
+  questions: z
+    .array(
+      z.object({
+        id: z.string().describe("Stable id, e.g. 'q1'."),
+        question: z.string(),
+        why: z.string().describe("Why this answer matters for the PRD."),
+      }),
+    )
+    .default([]),
+  // Present when decision === "educate": explain what likely already exists.
+  educateMessage: z
+    .string()
+    .default("")
+    .describe(
+      "If the capability may already exist or shouldn't be built, explain to the user (with reasoning). Empty otherwise.",
+    ),
+});
+export type Clarification = z.infer<typeof ClarificationSchema>;
+
+const UserStorySchema = z.object({
+  as: z.string().describe("The persona, e.g. 'a product manager'."),
+  want: z.string().describe("What they want to do."),
+  soThat: z.string().describe("The benefit / outcome."),
+});
+
+const AcceptanceCriterionSchema = z.object({
+  id: z.string().describe("Stable id, e.g. 'ac1'. Tasks reference these."),
+  text: z.string().describe("A single, testable acceptance criterion."),
+});
+
+/**
+ * A structured Product Requirements Document. Mirrors the Prd model's JSON
+ * columns so the AI output maps 1:1 onto storage.
+ */
+export const PrdSchema = z.object({
+  problemStatement: z.string(),
+  goals: z.array(z.string()).min(1),
+  nonGoals: z.array(z.string()).default([]),
+  userStories: z.array(UserStorySchema).min(1),
+  acceptanceCriteria: z.array(AcceptanceCriterionSchema).min(1),
+  edgeCases: z.array(z.string()).default([]),
+  successMetrics: z.array(z.string()).default([]),
+});
+export type Prd = z.infer<typeof PrdSchema>;
+
+/** Clarifying Q&A collected from the user, fed back into PRD generation. */
+export const ClarifyingAnswersSchema = z.array(
+  z.object({
+    question: z.string(),
+    answer: z.string(),
+  }),
+);
+export type ClarifyingAnswers = z.infer<typeof ClarifyingAnswersSchema>;

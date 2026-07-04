@@ -1,22 +1,17 @@
 {
-  "name": "@shipflow/api",
+  "name": "@shipflow/ai",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./trpc": "./src/trpc.ts",
-    "./root": "./src/root.ts"
+    ".": "./src/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@shipflow/ai": "workspace:*",
-    "@shipflow/db": "workspace:*",
-    "@shipflow/jobs": "workspace:*",
-    "@trpc/server": "^11.0.0",
-    "superjson": "^2.2.2",
+    "@ai-sdk/groq": "^1.2.0",
+    "ai": "^4.3.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
