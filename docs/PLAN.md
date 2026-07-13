@@ -6,8 +6,9 @@
 > **Progress:**
 > - ✅ **M1 — Monorepo foundation** (pnpm + Turborepo, Prisma data model, tRPC end-to-end, proxy auth gate). *Deployed.*
 > - ✅ **M2 — Auth + multi-tenant orgs** (BetterAuth email/password + GitHub, organization plugin, org-scoped dashboard, tenancy in tRPC). *Deployed.*
-> - ✅ **M3 — Feature request → AI PRD** (discovery triage + PRD generation via Inngest workflows; AI SDK + Groq). Verified locally; see [M3-PLAN.md](M3-PLAN.md).
-> - ⏭️ **Next: M4 — Tasks + Kanban board.**
+> - ✅ **M3 — Feature request → AI PRD** (discovery triage + PRD generation via Inngest workflows; AI SDK + Groq). *Deployed.* See [M3-PLAN.md](M3-PLAN.md).
+> - ✅ **M4 — Tasks + Kanban board** (approved PRD → AI-generated engineering tasks; drag-and-drop board with plan approval → TASKS_READY).
+> - ⏭️ **Next: M5 — GitHub integration** (connect repos, webhooks, track PRs).
 >
 > See §6 for the full milestone sequence. Detailed per-milestone plans: [M2-PLAN.md](M2-PLAN.md), [M3-PLAN.md](M3-PLAN.md).
 >

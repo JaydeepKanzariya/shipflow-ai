@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "../_components/status-badge";
 import { PrdView } from "./prd-view";
+import { TaskBoard } from "./task-board";
 
 type ProgressStep = {
   step: string;
@@ -21,7 +22,20 @@ type ProgressStep = {
 };
 
 // Statuses where an async workflow is likely in flight → poll for updates.
-const ACTIVE = new Set(["DISCOVERY"]);
+// PRD_APPROVED: task-generation workflow runs right after PRD approval.
+const ACTIVE = new Set(["DISCOVERY", "PRD_APPROVED"]);
+
+// Feature has a task plan to show (tasks generated at/after PRD approval).
+const HAS_TASKS = new Set([
+  "PRD_APPROVED",
+  "TASKS_READY",
+  "IN_DEVELOPMENT",
+  "IN_AI_REVIEW",
+  "FIX_NEEDED",
+  "READY_FOR_APPROVAL",
+  "APPROVED",
+  "SHIPPED",
+]);
 
 export function FeatureDetail({ featureId }: { featureId: string }) {
   const router = useRouter();
@@ -109,6 +123,14 @@ export function FeatureDetail({ featureId }: { featureId: string }) {
           prd={feature.prd}
           approved={feature.status === "PRD_APPROVED" || !!feature.prd.approvedAt}
           onChanged={() => featureQuery.refetch()}
+        />
+      )}
+
+      {/* Kanban board (Phase 2 — Planning) */}
+      {HAS_TASKS.has(feature.status) && (
+        <TaskBoard
+          featureId={featureId}
+          planApproved={feature.status !== "PRD_APPROVED"}
         />
       )}
     </div>

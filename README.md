@@ -6,7 +6,7 @@
 
 A multi-tenant SaaS where a customer/product-owner request is understood, clarified, turned into a structured PRD, broken into engineering tasks on a Kanban board, connected to a GitHub repository, reviewed by an AI QA/engineering reviewer against the requirements, sent back for fixes, re-reviewed until clean, and finally approved by a human before being marked shipped.
 
-> **Status:** Active build. **M1 (monorepo), M2 (auth + multi-tenant orgs), and M3 (feature request → AI PRD) are complete and verified** — M1 & M2 are deployed live on Vercel. Later milestones (tasks/Kanban, GitHub, AI review, approval, billing) are in progress — see [docs/PLAN.md](docs/PLAN.md). Sections below marked _(planned: Mx)_ are scaffolded but not yet implemented.
+> **Status:** Active build. **M1 (monorepo), M2 (auth + multi-tenant orgs), M3 (feature request → AI PRD), and M4 (tasks + Kanban board) are complete and verified** — M1–M3 are deployed live on Vercel. Later milestones (GitHub, AI review, approval, billing) are in progress — see [docs/PLAN.md](docs/PLAN.md). Sections below marked _(planned: Mx)_ are scaffolded but not yet implemented.
 
 ---
 
@@ -177,12 +177,12 @@ Will use Octokit via a **GitHub App** (installation tokens) to connect repositor
 
 Long-running work runs as Inngest functions, served from `apps/web/src/app/api/inngest/route.ts`, with step-by-step progress mirrored to the `WorkflowRun` table for live in-app visibility. tRPC mutations send events; workflows do the heavy lifting so requests stay fast.
 
-Implemented (M3):
-- `feature/clarify` — requirement clarification, educate-or-reject, or proceed
-- `prd/generate` — generate a structured PRD from the request + clarifying answers
+Implemented:
+- `feature/clarify` — requirement clarification, educate-or-reject, or proceed _(M3)_
+- `prd/generate` — generate a structured PRD from the request + clarifying answers _(M3)_
+- `tasks/generate` — break an approved PRD into engineering tasks _(M4)_
 
 Planned:
-- `prd/generate-tasks` _(M4)_ — PRD → engineering tasks
 - `repo/analyze` _(M5)_ — repository analysis to ground reviews
 - `pr/ai-review` _(M6)_ — diff review vs PRD/acceptance/tasks/security/perf/edge/quality (re-runs on new commits)
 - `feature/release-readiness` _(M7)_ — production-readiness summary for human approval
@@ -193,12 +193,13 @@ Planned:
 
 Powered by the Vercel AI SDK. Default provider is **Groq** (`llama-3.3-70b-versatile`, free); the provider is isolated to `packages/ai/src/model.ts`, so swapping to Gemini or Claude is a one-line change. All AI returns **Zod-validated structured output** (no free-text parsing).
 
-Implemented (M3):
-- **Requirement clarification** — decide clarify / educate / proceed, with follow-up questions
-- **PRD generation** — structured problem, goals, non-goals, user stories, acceptance criteria (with ids), edge cases, success metrics
+Implemented:
+- **Requirement clarification** _(M3)_ — decide clarify / educate / proceed, with follow-up questions
+- **PRD generation** _(M3)_ — structured problem, goals, non-goals, user stories, acceptance criteria (with ids), edge cases, success metrics
+- **Task generation** _(M4)_ — break an approved PRD into PR-sized engineering tasks, each referencing the acceptance-criteria ids it satisfies
 
 Planned:
-- Task generation _(M4)_ · Repository analysis _(M5)_ · Code review + QA validation _(M6)_ · Release-readiness checks _(M7)_
+- Repository analysis _(M5)_ · Code review + QA validation _(M6)_ · Release-readiness checks _(M7)_
 
 The review agent (M6) will act as a **QA + engineering reviewer** (does the implementation satisfy the product requirements and is it production-ready), not a syntax checker, and every issue will explain _why_. **Humans remain the final decision makers.**
 

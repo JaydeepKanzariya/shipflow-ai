@@ -14,6 +14,9 @@ type Events = {
   "prd.generate.requested": {
     data: { featureRequestId: string; workflowRunId: string };
   };
+  "tasks.generate.requested": {
+    data: { featureRequestId: string; workflowRunId: string };
+  };
 };
 
 export const inngest = new Inngest({

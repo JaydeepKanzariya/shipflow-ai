@@ -64,3 +64,25 @@ export const ClarifyingAnswersSchema = z.array(
   }),
 );
 export type ClarifyingAnswers = z.infer<typeof ClarifyingAnswersSchema>;
+
+/**
+ * Engineering tasks broken out of a PRD. Each task references the PRD
+ * acceptance-criteria ids it helps satisfy, so coverage is traceable.
+ */
+export const TaskListSchema = z.object({
+  tasks: z
+    .array(
+      z.object({
+        title: z.string().describe("Short, imperative task title."),
+        description: z
+          .string()
+          .describe("What to build and any technical notes. 1-4 sentences."),
+        acceptanceRefs: z
+          .array(z.string())
+          .default([])
+          .describe("PRD acceptance-criteria ids this task helps satisfy (e.g. ['ac1'])."),
+      }),
+    )
+    .min(1),
+});
+export type TaskList = z.infer<typeof TaskListSchema>;

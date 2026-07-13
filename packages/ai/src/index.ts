@@ -6,3 +6,4 @@ export {
   type AssessInput,
   type GeneratePrdInput,
 } from "./discovery";
+export { generateTasks, type GenerateTasksInput } from "./planning";

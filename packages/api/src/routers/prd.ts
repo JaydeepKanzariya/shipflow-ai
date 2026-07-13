@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { PrdSchema } from "@shipflow/ai";
+import { inngest } from "@shipflow/jobs";
 import { orgProcedure, roleProcedure, router } from "../trpc";
 
 export const prdRouter = router({
@@ -71,6 +72,22 @@ export const prdRouter = router({
         where: { id: feature.id },
         data: { status: "PRD_APPROVED" },
       });
+
+      // Kick off task generation (Phase 2 — Planning).
+      const run = await ctx.db.workflowRun.create({
+        data: {
+          organizationId: ctx.organizationId,
+          featureRequestId: feature.id,
+          kind: "TASKS_GENERATE",
+          state: "QUEUED",
+        },
+        select: { id: true },
+      });
+      await inngest.send({
+        name: "tasks.generate.requested",
+        data: { featureRequestId: feature.id, workflowRunId: run.id },
+      });
+
       return { ok: true };
     }),
 });

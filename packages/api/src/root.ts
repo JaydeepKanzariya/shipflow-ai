@@ -4,6 +4,7 @@ import { organizationRouter } from "./routers/organization";
 import { projectRouter } from "./routers/project";
 import { featureRequestRouter } from "./routers/feature-request";
 import { prdRouter } from "./routers/prd";
+import { taskRouter } from "./routers/task";
 
 /**
  * The ShipFlow tRPC root router. Remaining feature routers (tasks, github,
@@ -15,6 +16,7 @@ export const appRouter = router({
   project: projectRouter,
   featureRequest: featureRequestRouter,
   prd: prdRouter,
+  task: taskRouter,
 });
 
 export type AppRouter = typeof appRouter;
