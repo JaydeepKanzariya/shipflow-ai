@@ -10,6 +10,27 @@ A multi-tenant SaaS where a customer/product-owner request is understood, clarif
 
 ---
 
+## How it works (end to end)
+
+What actually happens when a request enters ShipFlow:
+
+| # | Step | What the platform does | Where |
+|---|---|---|---|
+| 1 | **Request comes in** | Someone submits a feature request (manual, email, ticket, or call) | Feature Requests → *New request* |
+| 2 | **AI triage** | An agent decides: ask clarifying questions, **educate** (this likely already exists / shouldn't be built), or proceed | Feature detail |
+| 3 | **PRD generated** | Problem, goals, non-goals, user stories, **testable acceptance criteria (with ids)**, edge cases, success metrics | PRD panel |
+| 4 | **Human approves the PRD** | Nothing proceeds on AI say-so alone | *Approve PRD* |
+| 5 | **Tasks generated** | The PRD is broken into PR-sized tasks, each referencing the acceptance criteria it satisfies | Kanban board |
+| 6 | **Team approves the plan** | Tasks are reviewed/edited, then the plan is approved | *Approve plan* |
+| 7 | **Code happens** | A repo is connected via the GitHub App; PRs whose branch/body carry the feature id auto-link and move it to *In development* | Settings → GitHub |
+| 8 | **AI review** _(M6)_ | The PR diff is reviewed against the PRD, acceptance criteria, tasks, security, performance, edge cases, and quality — issues are **blocking / non-blocking**, each explaining *why* | — |
+| 9 | **Fix → re-review** _(M6)_ | Issues send the feature back to *fix needed*; new commits trigger a re-review until clean | — |
+| 10 | **Human approval → shipped** _(M7)_ | A reviewer checks the PRD, tasks, PR, and review history, then approves the release | — |
+
+Long-running steps (2, 3, 5, 7-analysis) run as **Inngest workflows** with live progress in the UI, so the request that triggers them returns immediately.
+
+---
+
 ## Tech stack
 
 | Layer | Technology |
