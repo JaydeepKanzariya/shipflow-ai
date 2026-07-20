@@ -111,3 +111,77 @@ export const RepoAnalysisSchema = z.object({
     .describe("Fragile or risky areas a reviewer should watch."),
 });
 export type RepoAnalysis = z.infer<typeof RepoAnalysisSchema>;
+
+/** Review dimensions required by the spec. */
+export const ISSUE_CATEGORIES = [
+  "PRD",
+  "ACCEPTANCE",
+  "SECURITY",
+  "PERFORMANCE",
+  "EDGE_CASE",
+  "QUALITY",
+] as const;
+
+/**
+ * Output of the QA/engineering review of a pull request. The reviewer judges
+ * whether the implementation satisfies the product requirements — not just
+ * whether the code is syntactically fine.
+ */
+export const ReviewSchema = z.object({
+  summary: z
+    .string()
+    .describe(
+      "2-5 sentences: what this PR does and whether it satisfies the PRD. Plain, specific language.",
+    ),
+  verdict: z
+    .enum(["APPROVED", "CHANGES_REQUESTED", "COMMENTED"])
+    .describe(
+      "APPROVED only when no blocking issues remain and the acceptance criteria are met.",
+    ),
+  /** Per-acceptance-criterion judgement — makes "meets the PRD" concrete. */
+  acceptanceCoverage: z
+    .array(
+      z.object({
+        id: z.string().describe("PRD acceptance criterion id, e.g. 'ac1'."),
+        status: z.enum(["SATISFIED", "PARTIAL", "NOT_ADDRESSED"]),
+        evidence: z
+          .string()
+          .describe("Why you judged it that way — cite files/changes from the diff."),
+      }),
+    )
+    .default([]),
+  issues: z
+    .array(
+      z.object({
+        severity: z
+          .enum(["BLOCKING", "NON_BLOCKING"])
+          .describe(
+            "BLOCKING = must fix before release (breaks a requirement, security, data loss, correctness). NON_BLOCKING = worth improving.",
+          ),
+        category: z.enum(ISSUE_CATEGORIES),
+        title: z.string().describe("Short, specific problem statement."),
+        body: z.string().describe("What is wrong, concretely."),
+        rationale: z
+          .string()
+          .describe(
+            "WHY this is a problem — the impact or requirement it violates. Required.",
+          ),
+        suggestion: z
+          .string()
+          .default("")
+          .describe("Concrete fix, if you have one."),
+        filePath: z
+          .string()
+          .default("")
+          .describe("File from the diff this applies to, if applicable."),
+        line: z
+          .number()
+          .int()
+          .nullable()
+          .default(null)
+          .describe("Line number in the new file, if applicable."),
+      }),
+    )
+    .default([]),
+});
+export type Review = z.infer<typeof ReviewSchema>;

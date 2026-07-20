@@ -20,6 +20,9 @@ type Events = {
   "repo.analyze.requested": {
     data: { repositoryId: string; workflowRunId: string };
   };
+  "pr.review.requested": {
+    data: { pullRequestId: string; workflowRunId: string };
+  };
 };
 
 export const inngest = new Inngest({
