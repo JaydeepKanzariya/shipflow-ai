@@ -1,20 +1,16 @@
 {
-  "name": "@shipflow/jobs",
+  "name": "@shipflow/github",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./client": "./src/client.ts"
+    ".": "./src/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@shipflow/ai": "workspace:*",
-    "@shipflow/db": "workspace:*",
-    "@shipflow/github": "workspace:*",
-    "inngest": "^3.35.0"
+    "octokit": "^4.1.0"
   },
   "devDependencies": {
     "@shipflow/tsconfig": "workspace:*",

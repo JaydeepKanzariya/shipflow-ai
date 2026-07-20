@@ -113,6 +113,8 @@ model Organization {
   logo      String?
   // BetterAuth org plugin stores arbitrary JSON-string metadata here.
   metadata  String?
+  // GitHub App installation for this workspace (set via the setup callback).
+  githubInstallationId String?
   plan      Plan     @default(FREE)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

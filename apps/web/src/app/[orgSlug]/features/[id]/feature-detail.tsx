@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "../_components/status-badge";
 import { PrdView } from "./prd-view";
 import { TaskBoard } from "./task-board";
+import { PullRequests } from "./pull-requests";
 
 type ProgressStep = {
   step: string;
@@ -133,6 +134,9 @@ export function FeatureDetail({ featureId }: { featureId: string }) {
           planApproved={feature.status !== "PRD_APPROVED"}
         />
       )}
+
+      {/* Pull requests (Phase 3 — Development) */}
+      {HAS_TASKS.has(feature.status) && <PullRequests featureId={featureId} />}
     </div>
   );
 }

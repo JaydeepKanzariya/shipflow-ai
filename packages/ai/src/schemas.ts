@@ -86,3 +86,28 @@ export const TaskListSchema = z.object({
     .min(1),
 });
 export type TaskList = z.infer<typeof TaskListSchema>;
+
+/**
+ * AI analysis of a connected repository — grounds later PR reviews in the
+ * repo's actual stack and conventions.
+ */
+export const RepoAnalysisSchema = z.object({
+  summary: z.string().describe("2-4 sentence overview of what this repo is."),
+  stack: z.array(z.string()).describe("Languages, frameworks, key libraries."),
+  structure: z
+    .string()
+    .describe("How the codebase is organized (folders, apps, packages)."),
+  conventions: z
+    .array(z.string())
+    .default([])
+    .describe("Observable conventions: naming, testing, patterns."),
+  entryPoints: z
+    .array(z.string())
+    .default([])
+    .describe("Key files/paths where changes usually start."),
+  risks: z
+    .array(z.string())
+    .default([])
+    .describe("Fragile or risky areas a reviewer should watch."),
+});
+export type RepoAnalysis = z.infer<typeof RepoAnalysisSchema>;

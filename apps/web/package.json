@@ -14,6 +14,7 @@
     "@shipflow/api": "workspace:*",
     "@shipflow/auth": "workspace:*",
     "@shipflow/db": "workspace:*",
+    "@shipflow/github": "workspace:*",
     "@shipflow/jobs": "workspace:*",
     "@shipflow/ui": "workspace:*",
     "inngest": "^3.35.0",

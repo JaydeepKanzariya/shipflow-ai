@@ -6,7 +6,7 @@
 
 A multi-tenant SaaS where a customer/product-owner request is understood, clarified, turned into a structured PRD, broken into engineering tasks on a Kanban board, connected to a GitHub repository, reviewed by an AI QA/engineering reviewer against the requirements, sent back for fixes, re-reviewed until clean, and finally approved by a human before being marked shipped.
 
-> **Status:** Active build. **M1 (monorepo), M2 (auth + multi-tenant orgs), M3 (feature request → AI PRD), and M4 (tasks + Kanban board) are complete and verified** — M1–M3 are deployed live on Vercel. Later milestones (GitHub, AI review, approval, billing) are in progress — see [docs/PLAN.md](docs/PLAN.md). Sections below marked _(planned: Mx)_ are scaffolded but not yet implemented.
+> **Status:** Active build. **M1 (monorepo), M2 (auth + multi-tenant orgs), M3 (feature request → AI PRD), M4 (tasks + Kanban board), and M5 (GitHub integration) are implemented** and deployed as they're verified. Later milestones (AI review, approval, billing) are in progress — see [docs/PLAN.md](docs/PLAN.md). Sections below marked _(planned: Mx)_ are scaffolded but not yet implemented.
 
 ---
 
@@ -22,7 +22,7 @@ A multi-tenant SaaS where a customer/product-owner request is understood, clarif
 | UI | shadcn/ui + Tailwind CSS v4 |
 | AI | Vercel AI SDK + Groq (`llama-3.3-70b-versatile`); provider-swappable |
 | Async workflows | Inngest |
-| GitHub | Octokit (GitHub App + webhooks) _(planned: M5)_ |
+| GitHub | Octokit (GitHub App + webhooks) |
 | Billing | Razorpay _(planned: M8)_ |
 | Deploy | Vercel |
 
@@ -43,6 +43,7 @@ shipflow-ai/
 │        │  ├─ api/trpc/[trpc]/route.ts   # tRPC fetch adapter
 │        │  ├─ api/auth/[...all]/route.ts # BetterAuth handler
 │        │  ├─ api/inngest/route.ts       # Inngest serve endpoint (workflows)
+│        │  ├─ api/webhooks/github/route.ts # GitHub webhooks (HMAC-verified)
 │        │  ├─ (auth)/                     # sign-in / sign-up
 │        │  ├─ onboarding/                 # create workspace
 │        │  ├─ [orgSlug]/                  # org-scoped app (dashboard, features…)
@@ -55,6 +56,7 @@ shipflow-ai/
 │  ├─ api/        # @shipflow/api — tRPC root router, context, procedures
 │  ├─ auth/       # @shipflow/auth — BetterAuth (server + client)
 │  ├─ ai/         # @shipflow/ai — AI SDK + Groq, Zod schemas, prompt modules
+│  ├─ github/     # @shipflow/github — Octokit GitHub App (repos, diffs, webhooks)
 │  ├─ jobs/       # @shipflow/jobs — Inngest client + workflow functions
 │  ├─ ui/         # @shipflow/ui — shared cn() util (shadcn lives in web)
 │  └─ tsconfig/   # @shipflow/tsconfig — shared TS base configs
@@ -150,7 +152,7 @@ Copy `.env.example` to `.env`. All variables are loaded at the repo root and sha
 | `GITHUB_APP_CLIENT_ID` / `GITHUB_APP_CLIENT_SECRET` | GitHub login (now) | GitHub OAuth app (for "Continue with GitHub") |
 | `GROQ_API_KEY` | AI (now) | free key at console.groq.com/keys |
 | `INNGEST_EVENT_KEY` / `INNGEST_SIGNING_KEY` | workflows (prod only) | Inngest Cloud; local dev needs neither |
-| `GITHUB_APP_ID` / `GITHUB_APP_PRIVATE_KEY` / `GITHUB_WEBHOOK_SECRET` | GitHub repos (M5) | GitHub App credentials |
+| `GITHUB_APP_ID` / `GITHUB_APP_PRIVATE_KEY` / `GITHUB_WEBHOOK_SECRET` / `NEXT_PUBLIC_GITHUB_APP_SLUG` | GitHub repos (now) | GitHub App credentials (see GitHub integration setup) |
 | `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` / `RAZORPAY_WEBHOOK_SECRET` | billing (M8) | Razorpay |
 
 ---
@@ -169,9 +171,22 @@ Every tenant-scoped model carries `organizationId` and is indexed accordingly.
 
 ---
 
-## GitHub integration setup _(planned: M5)_
+## GitHub integration setup
 
-Will use Octokit via a **GitHub App** (installation tokens) to connect repositories, receive webhook events (`pull_request`, `push`), fetch changed files/diffs, post review comments, and track PR/review status. Webhook signatures are verified with HMAC-SHA256 over the raw request body at `apps/web/src/app/api/webhooks/github/route.ts`. Setup steps (app creation, permissions, webhook URL) will be documented here once implemented.
+Uses Octokit via a **GitHub App** (installation tokens) — no personal access tokens, no hardcoded PR data. The app connects repositories, receives `pull_request` webhooks (HMAC-SHA256 verified over the raw body at `apps/web/src/app/api/webhooks/github/route.ts`), tracks PRs against features, and fetches changed files/diffs for the AI review.
+
+**One-time app creation** (github.com/settings/apps → New GitHub App):
+1. **Webhook URL:** `https://<your-domain>/api/webhooks/github` · **Webhook secret:** a random string
+2. **Setup URL** (post-install redirect): `https://<your-domain>/github/setup` (check "Redirect on update")
+3. **Repository permissions:** Contents **Read-only** · Pull requests **Read & write** · Metadata **Read-only**
+4. **Subscribe to events:** Pull request · Installation target: any account
+5. Note the **App ID** + **app slug**, generate a **private key** (.pem)
+
+**Env vars:** `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` (PEM on one line, `\n` for newlines), `GITHUB_WEBHOOK_SECRET`, `NEXT_PUBLIC_GITHUB_APP_SLUG`.
+
+**In-app flow:** Settings → GitHub → *Connect GitHub* (installs the app) → connect repos to a project (each connect triggers the AI `repo/analyze` workflow). PRs whose **branch name or body contains a feature's id** auto-link to that feature and move it to *In development*; others can be linked manually on the feature page.
+
+> Webhooks require a publicly reachable URL — test PR tracking against the deployed app (or a smee.io tunnel locally).
 
 ## Inngest workflows
 
@@ -181,9 +196,9 @@ Implemented:
 - `feature/clarify` — requirement clarification, educate-or-reject, or proceed _(M3)_
 - `prd/generate` — generate a structured PRD from the request + clarifying answers _(M3)_
 - `tasks/generate` — break an approved PRD into engineering tasks _(M4)_
+- `repo/analyze` — analyze a connected repo (tree + manifests → stack/structure/conventions) _(M5)_
 
 Planned:
-- `repo/analyze` _(M5)_ — repository analysis to ground reviews
 - `pr/ai-review` _(M6)_ — diff review vs PRD/acceptance/tasks/security/perf/edge/quality (re-runs on new commits)
 - `feature/release-readiness` _(M7)_ — production-readiness summary for human approval
 
@@ -197,9 +212,10 @@ Implemented:
 - **Requirement clarification** _(M3)_ — decide clarify / educate / proceed, with follow-up questions
 - **PRD generation** _(M3)_ — structured problem, goals, non-goals, user stories, acceptance criteria (with ids), edge cases, success metrics
 - **Task generation** _(M4)_ — break an approved PRD into PR-sized engineering tasks, each referencing the acceptance-criteria ids it satisfies
+- **Repository analysis** _(M5)_ — summarize a connected repo's stack, structure, conventions, entry points, and risks to ground PR reviews
 
 Planned:
-- Repository analysis _(M5)_ · Code review + QA validation _(M6)_ · Release-readiness checks _(M7)_
+- Code review + QA validation _(M6)_ · Release-readiness checks _(M7)_
 
 The review agent (M6) will act as a **QA + engineering reviewer** (does the implementation satisfy the product requirements and is it production-ready), not a syntax checker, and every issue will explain _why_. **Humans remain the final decision makers.**
 

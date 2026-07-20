@@ -60,7 +60,7 @@ https://console.groq.com/keys). See `.env.example` for all variables.
 
 Use pnpm's `--filter` to target one workspace. Package names:
 `@shipflow/web`, `@shipflow/api`, `@shipflow/db`, `@shipflow/auth`,
-`@shipflow/ai`, `@shipflow/jobs`, `@shipflow/ui`.
+`@shipflow/ai`, `@shipflow/github`, `@shipflow/jobs`, `@shipflow/ui`.
 
 ```bash
 # Web app only
@@ -119,3 +119,5 @@ curl.exe "http://localhost:3000/api/trpc/health.db?input=%7B%7D"
 | Feature request stuck on "AI working…" forever | The Inngest dev server isn't running — start `npx inngest-cli@latest dev` in a second terminal. |
 | Workflow fails with a quota / `limit: 0` error | AI provider issue, not code. Check `GROQ_API_KEY` in `.env`; see the error at http://localhost:8288. |
 | Edited `.env` but change not picked up | Restart `pnpm dev` — env is loaded at boot (root `.env` via `next.config.ts`). |
+| GitHub PRs not appearing in the app | Webhooks need a public URL — GitHub can't reach localhost. Test PR tracking on the deployed app, or tunnel with smee.io. Check delivery status under the GitHub App → Advanced → Recent Deliveries. |
+| "GitHub App not configured" error | Set `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` (one line, `\n` escapes), `GITHUB_WEBHOOK_SECRET`, `NEXT_PUBLIC_GITHUB_APP_SLUG` — then restart dev / redeploy. |

@@ -7,3 +7,4 @@ export {
   type GeneratePrdInput,
 } from "./discovery";
 export { generateTasks, type GenerateTasksInput } from "./planning";
+export { analyzeRepo, type AnalyzeRepoInput } from "./analysis";

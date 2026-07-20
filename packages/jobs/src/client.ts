@@ -17,6 +17,9 @@ type Events = {
   "tasks.generate.requested": {
     data: { featureRequestId: string; workflowRunId: string };
   };
+  "repo.analyze.requested": {
+    data: { repositoryId: string; workflowRunId: string };
+  };
 };
 
 export const inngest = new Inngest({

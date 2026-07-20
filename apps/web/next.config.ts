@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
     "@shipflow/api",
     "@shipflow/auth",
     "@shipflow/db",
+    "@shipflow/github",
     "@shipflow/jobs",
     "@shipflow/ui",
   ],
