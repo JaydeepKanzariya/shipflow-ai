@@ -466,6 +466,9 @@ model Review {
   verdict       ReviewVerdict @default(PENDING)
   status        ReviewStatus  @default(QUEUED)
   summary       String?       @db.Text
+  // Per-acceptance-criterion judgement:
+  // { id, status: SATISFIED|PARTIAL|NOT_ADDRESSED, evidence }[]
+  acceptanceCoverage Json?
   headSha       String? // which commit this review covered
   authorId      String? // human reviewer, when trigger=HUMAN
   createdAt     DateTime      @default(now())

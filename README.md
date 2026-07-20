@@ -10,6 +10,27 @@ A multi-tenant SaaS where a customer/product-owner request is understood, clarif
 
 ---
 
+## How it works (end to end)
+
+What actually happens when a request enters ShipFlow:
+
+| # | Step | What the platform does | Where |
+|---|---|---|---|
+| 1 | **Request comes in** | Someone submits a feature request (manual, email, ticket, or call) | Feature Requests → *New request* |
+| 2 | **AI triage** | An agent decides: ask clarifying questions, **educate** (this likely already exists / shouldn't be built), or proceed | Feature detail |
+| 3 | **PRD generated** | Problem, goals, non-goals, user stories, **testable acceptance criteria (with ids)**, edge cases, success metrics | PRD panel |
+| 4 | **Human approves the PRD** | Nothing proceeds on AI say-so alone | *Approve PRD* |
+| 5 | **Tasks generated** | The PRD is broken into PR-sized tasks, each referencing the acceptance criteria it satisfies | Kanban board |
+| 6 | **Team approves the plan** | Tasks are reviewed/edited, then the plan is approved | *Approve plan* |
+| 7 | **Code happens** | A repo is connected via the GitHub App; PRs whose branch/body carry the feature id auto-link and move it to *In development* | Settings → GitHub |
+| 8 | **AI review** | The PR diff is reviewed against the PRD, acceptance criteria, tasks, security, performance, edge cases, and quality — issues are **blocking / non-blocking**, each explaining *why*, and every acceptance criterion is marked satisfied / partial / not addressed | Feature detail → AI review |
+| 9 | **Fix → re-review** | Blocking issues send the feature to *fix needed*; pushing new commits auto-triggers a re-review that knows the previous issues | automatic (webhook) |
+| 10 | **Human approval → shipped** _(M7)_ | A reviewer checks the PRD, tasks, PR, and review history, then approves the release | — |
+
+Long-running steps (2, 3, 5, 7-analysis) run as **Inngest workflows** with live progress in the UI, so the request that triggers them returns immediately.
+
+---
+
 ## Tech stack
 
 | Layer | Technology |
@@ -197,6 +218,7 @@ Implemented:
 - `prd/generate` — generate a structured PRD from the request + clarifying answers _(M3)_
 - `tasks/generate` — break an approved PRD into engineering tasks _(M4)_
 - `repo/analyze` — analyze a connected repo (tree + manifests → stack/structure/conventions) _(M5)_
+- `pr/ai-review` — review a PR against its PRD/tasks, post comments to GitHub, drive FIX_NEEDED ⇄ re-review _(M6)_
 
 Planned:
 - `pr/ai-review` _(M6)_ — diff review vs PRD/acceptance/tasks/security/perf/edge/quality (re-runs on new commits)
@@ -213,11 +235,12 @@ Implemented:
 - **PRD generation** _(M3)_ — structured problem, goals, non-goals, user stories, acceptance criteria (with ids), edge cases, success metrics
 - **Task generation** _(M4)_ — break an approved PRD into PR-sized engineering tasks, each referencing the acceptance-criteria ids it satisfies
 - **Repository analysis** _(M5)_ — summarize a connected repo's stack, structure, conventions, entry points, and risks to ground PR reviews
+- **Code review + QA validation** _(M6)_ — review a PR diff against the PRD, acceptance criteria, tasks, security, performance, edge cases, and quality
 
 Planned:
-- Code review + QA validation _(M6)_ · Release-readiness checks _(M7)_
+- Release-readiness checks _(M7)_
 
-The review agent (M6) will act as a **QA + engineering reviewer** (does the implementation satisfy the product requirements and is it production-ready), not a syntax checker, and every issue will explain _why_. **Humans remain the final decision makers.**
+The review agent acts as a **QA + engineering reviewer** — it judges whether the implementation *satisfies the product requirements* and is production-ready, not whether the syntax is valid. It is given the PRD, acceptance criteria, engineering tasks, the repo analysis, and (on re-review) the previous unresolved issues. Every issue explains **why** it matters, and each acceptance criterion is marked *satisfied / partial / not addressed* with evidence from the diff. Large diffs are capped and any excluded files are named in the summary rather than silently dropped. **Humans remain the final decision makers** — the AI never ships anything on its own.
 
 ---
 

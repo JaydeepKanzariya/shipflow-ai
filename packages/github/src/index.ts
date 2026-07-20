@@ -8,6 +8,12 @@ export {
   type RepoOverview,
 } from "./repos";
 export { verifyGitHubWebhook } from "./webhooks";
+export {
+  postReview,
+  type ReviewCommentInput,
+  type PostReviewResult,
+} from "./reviews";
+export { selectReviewableFiles } from "./diff";
 
 /** GitHub App installation URL (users install the app here). */
 export function getInstallUrl(state?: string): string {

@@ -9,7 +9,8 @@
 > - ✅ **M3 — Feature request → AI PRD** (discovery triage + PRD generation via Inngest workflows; AI SDK + Groq). *Deployed.* See [M3-PLAN.md](M3-PLAN.md).
 > - ✅ **M4 — Tasks + Kanban board** (approved PRD → AI-generated engineering tasks; drag-and-drop board with plan approval → TASKS_READY). *Deployed.*
 > - ✅ **M5 — GitHub integration** (GitHub App + webhooks, repo connect, PR tracking + auto-link, repo/analyze AI workflow). Code complete — runtime verification needs the GitHub App created; see [M5-PLAN.md](M5-PLAN.md).
-> - ⏭️ **Next: M6 — AI review loop** (PR diff review vs PRD, fix ⇄ re-review).
+> - ✅ **M6 — AI review loop** (PR diff reviewed vs PRD/acceptance/tasks/security/perf/edge/quality; blocking vs non-blocking issues each with a *why*; acceptance-criteria coverage; comments posted to GitHub; FIX_NEEDED ⇄ auto re-review on new commits). See [M6-PLAN.md](M6-PLAN.md).
+> - ⏭️ **Next: M7 — Human approval → Shipped** (release gate over PRD + tasks + PR + review history).
 >
 > See §6 for the full milestone sequence. Detailed per-milestone plans: [M2-PLAN.md](M2-PLAN.md), [M3-PLAN.md](M3-PLAN.md).
 >

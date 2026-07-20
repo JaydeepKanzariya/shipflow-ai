@@ -7,6 +7,7 @@ import { useTRPC } from "@/trpc/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AiReview } from "./ai-review";
 
 const PR_BADGE: Record<string, "success" | "muted" | "default"> = {
   OPEN: "default",
@@ -55,31 +56,33 @@ export function PullRequests({ featureId }: { featureId: string }) {
             link one below.
           </p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-4">
             {linked.data!.map((pr) => (
-              <a
-                key={pr.id}
-                href={pr.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between gap-3 rounded-lg border p-3 transition-colors hover:bg-accent/40"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    #{pr.number} {pr.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {pr.repository.fullName} · {pr.branch} → {pr.baseBranch}
-                    {pr.authorLogin ? ` · @${pr.authorLogin}` : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={PR_BADGE[pr.state] ?? "muted"}>
-                    {pr.state.toLowerCase()}
-                  </Badge>
-                  <ExternalLink className="size-3.5 text-muted-foreground" />
-                </div>
-              </a>
+              <div key={pr.id} className="space-y-3">
+                <a
+                  href={pr.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between gap-3 rounded-lg border p-3 transition-colors hover:bg-accent/40"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      #{pr.number} {pr.title}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {pr.repository.fullName} · {pr.branch} → {pr.baseBranch}
+                      {pr.authorLogin ? ` · @${pr.authorLogin}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={PR_BADGE[pr.state] ?? "muted"}>
+                      {pr.state.toLowerCase()}
+                    </Badge>
+                    <ExternalLink className="size-3.5 text-muted-foreground" />
+                  </div>
+                </a>
+                <AiReview pullRequestId={pr.id} prNumber={pr.number} />
+              </div>
             ))}
           </div>
         )}

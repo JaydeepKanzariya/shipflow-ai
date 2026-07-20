@@ -1,5 +1,6 @@
 import { prisma } from "@shipflow/db";
 import { verifyGitHubWebhook } from "@shipflow/github";
+import { inngest } from "@shipflow/jobs";
 
 export const maxDuration = 60;
 
@@ -96,7 +97,7 @@ async function handlePullRequest(payload: PullRequestPayload) {
   });
   const linked = features.find((f) => haystack.includes(f.id));
 
-  await prisma.pullRequest.upsert({
+  const saved = await prisma.pullRequest.upsert({
     where: { repositoryId_number: { repositoryId: repo.id, number: pr.number } },
     create: {
       organizationId: repo.organizationId,
@@ -118,6 +119,7 @@ async function handlePullRequest(payload: PullRequestPayload) {
       // Preserve an existing manual link; only fill when newly detected.
       ...(linked ? { featureRequestId: linked.id } : {}),
     },
+    select: { id: true, featureRequestId: true, organizationId: true },
   });
 
   // A PR arriving for a planned feature moves it into development.
@@ -128,6 +130,27 @@ async function handlePullRequest(payload: PullRequestPayload) {
     await prisma.featureRequest.update({
       where: { id: linked.id },
       data: { status: "IN_DEVELOPMENT" },
+    });
+  }
+
+  // New commits on a linked PR → automatic re-review (spec Phase 4 loop).
+  if (payload.action === "synchronize" && saved.featureRequestId) {
+    const run = await prisma.workflowRun.create({
+      data: {
+        organizationId: saved.organizationId,
+        featureRequestId: saved.featureRequestId,
+        kind: "PR_AI_REVIEW",
+        state: "QUEUED",
+      },
+      select: { id: true },
+    });
+    await prisma.featureRequest.update({
+      where: { id: saved.featureRequestId },
+      data: { status: "IN_AI_REVIEW" },
+    });
+    await inngest.send({
+      name: "pr.review.requested",
+      data: { pullRequestId: saved.id, workflowRunId: run.id },
     });
   }
 }
