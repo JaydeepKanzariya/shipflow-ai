@@ -25,7 +25,7 @@ What actually happens when a request enters ShipFlow:
 | 7 | **Code happens** | A repo is connected via the GitHub App; PRs whose branch/body carry the feature id auto-link and move it to *In development* | Settings → GitHub |
 | 8 | **AI review** | The PR diff is reviewed against the PRD, acceptance criteria, tasks, security, performance, edge cases, and quality — issues are **blocking / non-blocking**, each explaining *why*, and every acceptance criterion is marked satisfied / partial / not addressed | Feature detail → AI review |
 | 9 | **Fix → re-review** | Blocking issues send the feature to *fix needed*; pushing new commits auto-triggers a re-review that knows the previous issues | automatic (webhook) |
-| 10 | **Human approval → shipped** _(M7)_ | A reviewer checks the PRD, tasks, PR, and review history, then approves the release | — |
+| 10 | **Human approval → shipped** | A reviewer sees an AI **release-readiness** brief (PRD, tasks, PRs, review history, open issues) then approves or rejects. Approval is blocked while blocking issues remain (override needs a reason); only approved features can be **shipped** | Feature detail → Approval & release |
 
 Long-running steps (2, 3, 5, 7-analysis) run as **Inngest workflows** with live progress in the UI, so the request that triggers them returns immediately.
 
@@ -219,10 +219,7 @@ Implemented:
 - `tasks/generate` — break an approved PRD into engineering tasks _(M4)_
 - `repo/analyze` — analyze a connected repo (tree + manifests → stack/structure/conventions) _(M5)_
 - `pr/ai-review` — review a PR against its PRD/tasks, post comments to GitHub, drive FIX_NEEDED ⇄ re-review _(M6)_
-
-Planned:
-- `pr/ai-review` _(M6)_ — diff review vs PRD/acceptance/tasks/security/perf/edge/quality (re-runs on new commits)
-- `feature/release-readiness` _(M7)_ — production-readiness summary for human approval
+- `feature/release-readiness` — production-readiness brief for the human approver _(M7)_
 
 **Local dev:** run `npx inngest-cli@latest dev` alongside `pnpm dev` (dashboard at `http://localhost:8288`). **Production:** Inngest Cloud + `INNGEST_EVENT_KEY` / `INNGEST_SIGNING_KEY`.
 
@@ -236,9 +233,7 @@ Implemented:
 - **Task generation** _(M4)_ — break an approved PRD into PR-sized engineering tasks, each referencing the acceptance-criteria ids it satisfies
 - **Repository analysis** _(M5)_ — summarize a connected repo's stack, structure, conventions, entry points, and risks to ground PR reviews
 - **Code review + QA validation** _(M6)_ — review a PR diff against the PRD, acceptance criteria, tasks, security, performance, edge cases, and quality
-
-Planned:
-- Release-readiness checks _(M7)_
+- **Release-readiness checks** _(M7)_ — brief the human approver on whether the feature is production-ready (advisory; a human decides)
 
 The review agent acts as a **QA + engineering reviewer** — it judges whether the implementation *satisfies the product requirements* and is production-ready, not whether the syntax is valid. It is given the PRD, acceptance criteria, engineering tasks, the repo analysis, and (on re-review) the previous unresolved issues. Every issue explains **why** it matters, and each acceptance criterion is marked *satisfied / partial / not addressed* with evidence from the diff. Large diffs are capped and any excluded files are named in the summary rather than silently dropped. **Humans remain the final decision makers** — the AI never ships anything on its own.
 

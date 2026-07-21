@@ -8,6 +8,7 @@ import { taskRouter } from "./routers/task";
 import { githubRouter } from "./routers/github";
 import { pullRequestRouter } from "./routers/pull-request";
 import { reviewRouter } from "./routers/review";
+import { releaseRouter } from "./routers/release";
 
 /**
  * The ShipFlow tRPC root router. Remaining feature routers (tasks, github,
@@ -23,6 +24,7 @@ export const appRouter = router({
   github: githubRouter,
   pullRequest: pullRequestRouter,
   review: reviewRouter,
+  release: releaseRouter,
 });
 
 export type AppRouter = typeof appRouter;

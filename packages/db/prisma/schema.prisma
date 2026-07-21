@@ -40,6 +40,7 @@ model User {
 
   // Authored / assigned domain records
   featureRequests FeatureRequest[] @relation("RequestedBy")
+  releasesApproved FeatureRequest[] @relation("ReleaseApprovedBy")
   approvedPrds    Prd[]            @relation("PrdApprovedBy")
   assignedTasks   Task[]           @relation("TaskAssignee")
   reviewsAuthored Review[]         @relation("ReviewAuthor")
@@ -322,12 +323,22 @@ model FeatureRequest {
   // AI clarifying questions + collected answers, and educate/decision notes.
   clarifyingQA   Json?
   decisionNote   String?       @db.Text
+
+  // Release gate (Phase 5) — who signed off, when, and why.
+  releaseApprovedById String?
+  releaseApprovedAt   DateTime?
+  releaseDecisionNote String?   @db.Text
+  shippedAt           DateTime?
+  // Latest AI release-readiness assessment: { verdict, summary, checks[] }
+  releaseReadiness    Json?
+
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
   organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   requestedBy     User?            @relation("RequestedBy", fields: [requestedById], references: [id])
+  releaseApprovedBy User?          @relation("ReleaseApprovedBy", fields: [releaseApprovedById], references: [id])
   prd             Prd?
   tasks           Task[]
   pullRequests    PullRequest[]

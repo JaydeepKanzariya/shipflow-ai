@@ -185,3 +185,30 @@ export const ReviewSchema = z.object({
     .default([]),
 });
 export type Review = z.infer<typeof ReviewSchema>;
+
+/**
+ * Release-readiness assessment shown to the human approver (spec Phase 5).
+ * Advisory only — a human still makes the call.
+ */
+export const ReleaseReadinessSchema = z.object({
+  verdict: z
+    .enum(["READY", "READY_WITH_RISKS", "NOT_READY"])
+    .describe("NOT_READY when blocking issues or unmet acceptance criteria remain."),
+  summary: z
+    .string()
+    .describe("3-6 sentences a reviewer can act on: what shipped, what's risky."),
+  checks: z
+    .array(
+      z.object({
+        name: z.string().describe("e.g. 'Acceptance criteria met', 'No blocking issues'."),
+        status: z.enum(["PASS", "WARN", "FAIL"]),
+        detail: z.string().describe("Evidence for this judgement."),
+      }),
+    )
+    .default([]),
+  outstandingRisks: z
+    .array(z.string())
+    .default([])
+    .describe("What could still go wrong in production."),
+});
+export type ReleaseReadiness = z.infer<typeof ReleaseReadinessSchema>;

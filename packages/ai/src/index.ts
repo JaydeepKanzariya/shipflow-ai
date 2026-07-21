@@ -9,3 +9,7 @@ export {
 export { generateTasks, type GenerateTasksInput } from "./planning";
 export { analyzeRepo, type AnalyzeRepoInput } from "./analysis";
 export { reviewPullRequest, type ReviewPrInput } from "./review";
+export {
+  assessReleaseReadiness,
+  type ReleaseReadinessInput,
+} from "./release";
