@@ -10,7 +10,8 @@
 > - ✅ **M4 — Tasks + Kanban board** (approved PRD → AI-generated engineering tasks; drag-and-drop board with plan approval → TASKS_READY). *Deployed.*
 > - ✅ **M5 — GitHub integration** (GitHub App + webhooks, repo connect, PR tracking + auto-link, repo/analyze AI workflow). Code complete — runtime verification needs the GitHub App created; see [M5-PLAN.md](M5-PLAN.md).
 > - ✅ **M6 — AI review loop** (PR diff reviewed vs PRD/acceptance/tasks/security/perf/edge/quality; blocking vs non-blocking issues each with a *why*; acceptance-criteria coverage; comments posted to GitHub; FIX_NEEDED ⇄ auto re-review on new commits). See [M6-PLAN.md](M6-PLAN.md).
-> - ⏭️ **Next: M7 — Human approval → Shipped** (release gate over PRD + tasks + PR + review history).
+> - ✅ **M7 — Human approval → Shipped** (AI release-readiness brief; human approve/reject gated on unresolved blocking issues; only APPROVED can ship; audit-logged). **The core loop is complete.**
+> - ⏭️ **Next: M8 — Billing (Razorpay) + landing polish + demo.**
 >
 > See §6 for the full milestone sequence. Detailed per-milestone plans: [M2-PLAN.md](M2-PLAN.md), [M3-PLAN.md](M3-PLAN.md).
 >
