@@ -3,6 +3,7 @@ import { prdGenerate } from "./functions/prd-generate";
 import { tasksGenerate } from "./functions/tasks-generate";
 import { repoAnalyze } from "./functions/repo-analyze";
 import { prAiReview } from "./functions/pr-ai-review";
+import { releaseReadiness } from "./functions/release-readiness";
 
 export { inngest, type ShipflowEvents } from "./client";
 
@@ -13,4 +14,5 @@ export const functions = [
   tasksGenerate,
   repoAnalyze,
   prAiReview,
+  releaseReadiness,
 ];

@@ -15,6 +15,7 @@ import { StatusBadge } from "../_components/status-badge";
 import { PrdView } from "./prd-view";
 import { TaskBoard } from "./task-board";
 import { PullRequests } from "./pull-requests";
+import { ReleaseApproval } from "./release-approval";
 
 type ProgressStep = {
   step: string;
@@ -31,6 +32,15 @@ const HAS_TASKS = new Set([
   "PRD_APPROVED",
   "TASKS_READY",
   "IN_DEVELOPMENT",
+  "IN_AI_REVIEW",
+  "FIX_NEEDED",
+  "READY_FOR_APPROVAL",
+  "APPROVED",
+  "SHIPPED",
+]);
+
+// The release gate appears once the work is under review or awaiting sign-off.
+const AT_RELEASE_STAGE = new Set([
   "IN_AI_REVIEW",
   "FIX_NEEDED",
   "READY_FOR_APPROVAL",
@@ -137,6 +147,11 @@ export function FeatureDetail({ featureId }: { featureId: string }) {
 
       {/* Pull requests (Phase 3 — Development) */}
       {HAS_TASKS.has(feature.status) && <PullRequests featureId={featureId} />}
+
+      {/* Approval & release (Phase 5 — human decides) */}
+      {AT_RELEASE_STAGE.has(feature.status) && (
+        <ReleaseApproval featureId={featureId} />
+      )}
     </div>
   );
 }

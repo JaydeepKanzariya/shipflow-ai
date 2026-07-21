@@ -23,6 +23,9 @@ type Events = {
   "pr.review.requested": {
     data: { pullRequestId: string; workflowRunId: string };
   };
+  "release.readiness.requested": {
+    data: { featureRequestId: string; workflowRunId: string };
+  };
 };
 
 export const inngest = new Inngest({
