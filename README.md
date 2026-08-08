@@ -6,7 +6,7 @@
 
 A multi-tenant SaaS where a customer/product-owner request is understood, clarified, turned into a structured PRD, broken into engineering tasks on a Kanban board, connected to a GitHub repository, reviewed by an AI QA/engineering reviewer against the requirements, sent back for fixes, re-reviewed until clean, and finally approved by a human before being marked shipped.
 
-> **Status:** Active build. **M1 (monorepo), M2 (auth + multi-tenant orgs), M3 (feature request → AI PRD), M4 (tasks + Kanban board), and M5 (GitHub integration) are implemented** and deployed as they're verified. Later milestones (AI review, approval, billing) are in progress — see [docs/PLAN.md](docs/PLAN.md). Sections below marked _(planned: Mx)_ are scaffolded but not yet implemented.
+> **Status:** All eight milestones implemented and deployed — **M1** monorepo · **M2** auth + multi-tenant orgs · **M3** feature request → AI PRD · **M4** tasks + Kanban · **M5** GitHub integration · **M6** AI review loop · **M7** human approval → shipped · **M8** billing + polish. The full core loop (Request → PRD → Tasks → Code → AI Review → Fixes → Re-Review → Approval → Ship) works end to end. See [docs/PLAN.md](docs/PLAN.md).
 
 ---
 
@@ -44,7 +44,7 @@ Long-running steps (2, 3, 5, 7-analysis) run as **Inngest workflows** with live 
 | AI | Vercel AI SDK + Groq (`llama-3.3-70b-versatile`); provider-swappable |
 | Async workflows | Inngest |
 | GitHub | Octokit (GitHub App + webhooks) |
-| Billing | Razorpay _(planned: M8)_ |
+| Billing | Razorpay (subscriptions + webhooks; mock fallback for demos) |
 | Deploy | Vercel |
 
 > **Note on Next.js:** this project uses a build of Next.js 16 with breaking changes from older App Router knowledge. Key differences in play here: middleware is now `proxy.ts` (Node.js runtime), `cookies()`/`headers()`/`params` are async, Turbopack is the default builder (no custom webpack — Prisma is externalized via `serverExternalPackages`), and `fetch`/route handlers are not cached by default. Always check `node_modules/next/dist/docs/` before changing framework-level code.
@@ -79,6 +79,7 @@ shipflow-ai/
 │  ├─ ai/         # @shipflow/ai — AI SDK + Groq, Zod schemas, prompt modules
 │  ├─ github/     # @shipflow/github — Octokit GitHub App (repos, diffs, webhooks)
 │  ├─ jobs/       # @shipflow/jobs — Inngest client + workflow functions
+│  ├─ billing/    # @shipflow/billing — Razorpay + plan limits + usage gates
 │  ├─ ui/         # @shipflow/ui — shared cn() util (shadcn lives in web)
 │  └─ tsconfig/   # @shipflow/tsconfig — shared TS base configs
 ├─ docs/          # PLAN.md (roadmap), COMMANDS.md, M2/M3 plans
@@ -239,9 +240,31 @@ The review agent acts as a **QA + engineering reviewer** — it judges whether t
 
 ---
 
+## Billing & plan limits
+
+Multi-tenant SaaS billing via **Razorpay** (subscriptions). Plans and limits are a single source of truth in [packages/billing/src/plans.ts](packages/billing/src/plans.ts):
+
+| | Free | Pro (₹999/mo) | Scale (₹2,999/mo) |
+|---|---|---|---|
+| Repositories | 1 | 10 | ∞ |
+| AI review credits / mo | 20 | 300 | ∞ |
+| Feature requests / mo | 10 | ∞ | ∞ |
+| Premium workflows | — | ✅ | ✅ |
+
+Limits are enforced in tRPC (`connectRepo`, `review.run`, `featureRequest.create`) and surfaced as usage bars + upgrade prompts under **Settings → Billing**. Upgrades use Razorpay Checkout with server-side signature verification, and a Razorpay webhook keeps the subscription/plan in sync.
+
+> **Mock fallback:** if `RAZORPAY_KEY_ID`/`SECRET` are unset, the app uses a mock upgrade flow so the billing UX is fully demoable without a Razorpay account. Set the keys for real Checkout.
+
 ## Deployment
 
-Target: **Vercel** (web app) + hosted PostgreSQL + Inngest + publicly reachable GitHub/Razorpay webhooks. Detailed deploy steps land with M8.
+Deployed on **Vercel** (Root Directory `apps/web`, "include files outside root" on) + **Neon** PostgreSQL + **Inngest Cloud** (via the Vercel integration) + publicly reachable GitHub/Razorpay webhooks. Environment variables (see the table above) go in the Vercel dashboard. Prisma uses the Rust-free client + Neon adapter so it works on serverless.
+
+## Deliverables
+
+- ✅ tRPC monorepo (apps + packages) · Next.js web app · PostgreSQL + Prisma
+- ✅ GitHub webhook handling · public repo · live deployment
+- ✅ README (this file) · demo script ([docs/DEMO.md](docs/DEMO.md)) · launch posts ([docs/SOCIAL.md](docs/SOCIAL.md))
+- Roadmap & per-milestone plans in [docs/](docs/)
 
 ## License
 

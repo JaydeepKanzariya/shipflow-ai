@@ -13,6 +13,7 @@
     "@shipflow/ai": "workspace:*",
     "@shipflow/api": "workspace:*",
     "@shipflow/auth": "workspace:*",
+    "@shipflow/billing": "workspace:*",
     "@shipflow/db": "workspace:*",
     "@shipflow/github": "workspace:*",
     "@shipflow/jobs": "workspace:*",

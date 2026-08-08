@@ -2,7 +2,20 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { Prisma } from "@shipflow/db";
 import { inngest } from "@shipflow/jobs";
+import { assertWithinLimit, incrementUsage, LimitReachedError } from "@shipflow/billing";
 import { orgProcedure, router } from "../trpc";
+
+/** Turn a billing LimitReachedError into a tRPC FORBIDDEN with an upgrade hint. */
+function toLimitError(err: unknown): never {
+  if (err instanceof LimitReachedError) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: `You've reached your plan's limit for ${err.metric.replace(/_/g, " ")}. Upgrade to continue.`,
+      cause: err,
+    });
+  }
+  throw err;
+}
 
 const SOURCES = ["EMAIL", "TICKET", "CALL", "MANUAL", "API"] as const;
 
@@ -57,6 +70,11 @@ export const featureRequestRouter = router({
       });
       if (!project) throw new TRPCError({ code: "FORBIDDEN" });
 
+      // Plan gate: monthly feature-request quota.
+      await assertWithinLimit(ctx.organizationId, "feature_requests").catch(
+        toLimitError,
+      );
+
       const feature = await ctx.db.featureRequest.create({
         data: {
           organizationId: ctx.organizationId,
@@ -86,6 +104,7 @@ export const featureRequestRouter = router({
         data: { featureRequestId: feature.id, workflowRunId: run.id },
       });
 
+      await incrementUsage(ctx.organizationId, "feature_requests");
       return { id: feature.id };
     }),
 

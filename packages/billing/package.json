@@ -1,25 +1,18 @@
 {
-  "name": "@shipflow/api",
+  "name": "@shipflow/billing",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./trpc": "./src/trpc.ts",
-    "./root": "./src/root.ts"
+    "./plans": "./src/plans.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@shipflow/ai": "workspace:*",
-    "@shipflow/billing": "workspace:*",
     "@shipflow/db": "workspace:*",
-    "@shipflow/github": "workspace:*",
-    "@shipflow/jobs": "workspace:*",
-    "@trpc/server": "^11.0.0",
-    "superjson": "^2.2.2",
-    "zod": "^3.24.1"
+    "razorpay": "^2.9.6"
   },
   "devDependencies": {
     "@shipflow/tsconfig": "workspace:*",

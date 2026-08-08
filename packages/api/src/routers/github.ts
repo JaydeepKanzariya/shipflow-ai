@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { getInstallUrl, listInstallationRepos } from "@shipflow/github";
 import { inngest } from "@shipflow/jobs";
+import { assertWithinLimit, LimitReachedError } from "@shipflow/billing";
 import { orgProcedure, roleProcedure, router } from "../trpc";
 
 export const githubRouter = router({
@@ -87,6 +88,31 @@ export const githubRouter = router({
         select: { id: true },
       });
       if (!project) throw new TRPCError({ code: "FORBIDDEN" });
+
+      // Plan gate: repository limit — only for a genuinely new repo.
+      const already = await ctx.db.repository.findUnique({
+        where: {
+          organizationId_fullName: {
+            organizationId: ctx.organizationId,
+            fullName: input.fullName,
+          },
+        },
+        select: { id: true },
+      });
+      if (!already) {
+        try {
+          await assertWithinLimit(ctx.organizationId, "repositories");
+        } catch (err) {
+          if (err instanceof LimitReachedError) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "You've reached your plan's repository limit. Upgrade to connect more.",
+              cause: err,
+            });
+          }
+          throw err;
+        }
+      }
 
       const repo = await ctx.db.repository.upsert({
         where: {

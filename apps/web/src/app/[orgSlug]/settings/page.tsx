@@ -1,4 +1,5 @@
 import { GithubSettings } from "./github-settings";
+import { BillingSettings } from "./billing-settings";
 
 export default function SettingsPage() {
   return (
@@ -10,6 +11,7 @@ export default function SettingsPage() {
         </p>
       </div>
       <GithubSettings />
+      <BillingSettings />
     </div>
   );
 }
