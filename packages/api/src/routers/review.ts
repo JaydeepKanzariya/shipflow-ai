@@ -21,6 +21,37 @@ export const reviewRouter = router({
       });
     }),
 
+  /** Recent AI reviews across the whole org — for the Reviews page. */
+  recent: orgProcedure.query(async ({ ctx }) => {
+    const reviews = await ctx.db.review.findMany({
+      where: { pullRequest: { organizationId: ctx.organizationId } },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      include: {
+        issues: { select: { severity: true } },
+        pullRequest: {
+          select: {
+            number: true,
+            title: true,
+            url: true,
+            repository: { select: { fullName: true } },
+            featureRequest: { select: { id: true, title: true } },
+          },
+        },
+      },
+    });
+    return reviews.map((r) => ({
+      id: r.id,
+      verdict: r.verdict,
+      status: r.status,
+      summary: r.summary,
+      createdAt: r.createdAt,
+      blocking: r.issues.filter((i) => i.severity === "BLOCKING").length,
+      nonBlocking: r.issues.filter((i) => i.severity === "NON_BLOCKING").length,
+      pr: r.pullRequest,
+    }));
+  }),
+
   /** Full review history across every PR on a feature. */
   history: orgProcedure
     .input(z.object({ featureRequestId: z.string() }))
