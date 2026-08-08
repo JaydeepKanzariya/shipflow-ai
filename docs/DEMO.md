@@ -49,7 +49,12 @@ Target length: **3–5 minutes.** Show the **core loop end to end** on one real 
 ---
 
 ## Test cards (Razorpay test mode)
-- Card: `4111 1111 1111 1111`, any future expiry, any CVV, any name. (Or use the demo-upgrade button if Razorpay isn't configured.)
+- **Subscriptions need a recurring-enabled card.** Use `4718 6091 0820 4366`
+  (verified working), any future expiry (e.g. `12/30`), any CVV, any name;
+  authenticate the mandate with OTP `1111` / the Success button.
+- Contact step: any 10-digit number with 🇮🇳 +91 (e.g. `9876543210`) + any email.
+- Note: the common `4111 1111 1111 1111` card is **rejected** for subscriptions
+  ("not eligible for recurring payments") — don't use it here.
 
 ## What to have open in tabs beforehand
 1. The deployed app (signed in)
