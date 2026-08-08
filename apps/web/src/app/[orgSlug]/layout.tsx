@@ -27,12 +27,13 @@ export default async function OrgLayout({
     notFound();
   }
 
-  // Path-based tenancy: make the URL's org the session's active org so
-  // org-scoped tRPC procedures resolve the right tenant. Sets a cookie for
-  // subsequent requests on this navigation.
-  await setActiveOrganization(await headers(), org.id);
-
-  const orgs = await api.organization.list();
+  // Sync the session's active org to the URL (path-based tenancy) and load the
+  // org switcher list. These are independent, so run them in parallel to cut a
+  // sequential DB round-trip off every navigation.
+  const [, orgs] = await Promise.all([
+    setActiveOrganization(await headers(), org.id),
+    api.organization.list(),
+  ]);
 
   return (
     <div className="flex min-h-screen">
