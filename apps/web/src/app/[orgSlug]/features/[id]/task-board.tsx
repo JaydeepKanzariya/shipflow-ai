@@ -2,22 +2,22 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { CheckCircle2, GripVertical, Loader2, Plus, RefreshCw, X } from "lucide-react";
 import { toast } from "sonner";
 import { useTRPC } from "@/trpc/client";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 type TaskStatus = "BACKLOG" | "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE";
 
-const COLUMNS: { status: TaskStatus; label: string }[] = [
-  { status: "BACKLOG", label: "Backlog" },
-  { status: "TODO", label: "To do" },
-  { status: "IN_PROGRESS", label: "In progress" },
-  { status: "IN_REVIEW", label: "In review" },
-  { status: "DONE", label: "Done" },
+const COLUMNS: { status: TaskStatus; label: string; colorVar: string }[] = [
+  { status: "BACKLOG", label: "Backlog", colorVar: "--stage-discovery" },
+  { status: "TODO", label: "To do", colorVar: "--stage-tasks" },
+  { status: "IN_PROGRESS", label: "In progress", colorVar: "--brand-accent" },
+  { status: "IN_REVIEW", label: "In review", colorVar: "--stage-review" },
+  { status: "DONE", label: "Done", colorVar: "--stage-approved" },
 ];
 
 type Task = {
@@ -41,6 +41,7 @@ export function TaskBoard({
   const tasksOpts = trpc.task.byFeature.queryOptions({ featureRequestId: featureId });
   const tasksQuery = useQuery(tasksOpts);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [overCol, setOverCol] = useState<TaskStatus | null>(null);
   const [newTitle, setNewTitle] = useState("");
 
   const invalidate = () =>
@@ -48,7 +49,6 @@ export function TaskBoard({
 
   type TaskRow = NonNullable<typeof tasksQuery.data>[number];
 
-  /** Snapshot the cache and apply a local patch; returns rollback context. */
   async function optimistic(patch: (prev: TaskRow[]) => TaskRow[]) {
     await queryClient.cancelQueries({ queryKey: tasksOpts.queryKey });
     const previous = queryClient.getQueryData(tasksOpts.queryKey);
@@ -60,7 +60,6 @@ export function TaskBoard({
 
   const move = useMutation(
     trpc.task.move.mutationOptions({
-      // Optimistically move the card so drag-drop feels instant.
       onMutate: (vars) =>
         optimistic((prev) =>
           prev.map((t) =>
@@ -85,8 +84,6 @@ export function TaskBoard({
   );
   const del = useMutation(
     trpc.task.delete.mutationOptions({
-      // Optimistically remove the card — prevents the "nothing happened"
-      // pause and the double-click NOT_FOUND error.
       onMutate: (vars) => optimistic((prev) => prev.filter((t) => t.id !== vars.id)),
       onError: (e, _vars, ctx) => {
         if (ctx?.previous) queryClient.setQueryData(tasksOpts.queryKey, ctx.previous);
@@ -111,6 +108,7 @@ export function TaskBoard({
   const tasks = (tasksQuery.data ?? []) as Task[];
 
   function onDrop(status: TaskStatus) {
+    setOverCol(null);
     if (!dragId) return;
     const colCount = tasks.filter((t) => t.status === status).length;
     move.mutate({ id: dragId, status, order: colCount });
@@ -119,8 +117,13 @@ export function TaskBoard({
 
   return (
     <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-base">Engineering tasks</CardTitle>
+      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+        <div>
+          <CardTitle className="text-base">Engineering tasks</CardTitle>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Drag cards across the board · {tasks.length} task{tasks.length === 1 ? "" : "s"}
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           <Button
             size="sm"
@@ -129,12 +132,19 @@ export function TaskBoard({
             disabled={regenerate.isPending}
           >
             <RefreshCw className={regenerate.isPending ? "animate-spin" : ""} />
-            Regenerate
+            <span className="hidden sm:inline">Regenerate</span>
           </Button>
           {planApproved ? (
-            <Badge variant="success" className="gap-1">
-              <CheckCircle2 className="size-3" /> Plan approved
-            </Badge>
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium"
+              style={{
+                color: "var(--stage-approved)",
+                borderColor: "color-mix(in oklch, var(--stage-approved) 35%, transparent)",
+                backgroundColor: "color-mix(in oklch, var(--stage-approved) 12%, transparent)",
+              }}
+            >
+              <CheckCircle2 className="size-3.5" /> Plan approved
+            </span>
           ) : (
             <Button
               size="sm"
@@ -151,90 +161,147 @@ export function TaskBoard({
         {tasksQuery.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading board…</p>
         ) : (
-          <div className="grid gap-3 md:grid-cols-5">
-            {COLUMNS.map((col) => {
-              const colTasks = tasks
-                .filter((t) => t.status === col.status)
-                .sort((a, b) => a.order - b.order);
-              return (
-                <div
-                  key={col.status}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => onDrop(col.status)}
-                  className="flex min-h-32 flex-col gap-2 rounded-lg border bg-muted/30 p-2"
-                >
-                  <div className="flex items-center justify-between px-1">
-                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                      {col.label}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {colTasks.length}
-                    </span>
-                  </div>
-                  {colTasks.map((task) => (
-                    <div
-                      key={task.id}
-                      draggable
-                      onDragStart={() => setDragId(task.id)}
-                      className="group cursor-grab rounded-md border bg-card p-2.5 text-sm shadow-sm active:cursor-grabbing"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="font-medium leading-snug">{task.title}</p>
-                        <button
-                          onClick={() => del.mutate({ id: task.id })}
-                          className="opacity-0 transition-opacity group-hover:opacity-100"
-                          aria-label="Delete task"
-                        >
-                          <Trash2 className="size-3.5 text-muted-foreground hover:text-destructive" />
-                        </button>
+          // Horizontal-scroll board — comfortable columns on every screen size.
+          <div className="-mx-4 overflow-x-auto px-4 pb-2 sm:-mx-6 sm:px-6">
+            <div className="flex min-w-max gap-3">
+              {COLUMNS.map((col) => {
+                const colTasks = tasks
+                  .filter((t) => t.status === col.status)
+                  .sort((a, b) => a.order - b.order);
+                const isOver = overCol === col.status;
+                const color = `var(${col.colorVar})`;
+                return (
+                  <div
+                    key={col.status}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      if (overCol !== col.status) setOverCol(col.status);
+                    }}
+                    onDragLeave={(e) => {
+                      if (!e.currentTarget.contains(e.relatedTarget as Node))
+                        setOverCol((c) => (c === col.status ? null : c));
+                    }}
+                    onDrop={() => onDrop(col.status)}
+                    className={cn(
+                      "flex w-64 shrink-0 flex-col gap-2 rounded-xl border p-2 transition-colors",
+                      isOver ? "bg-accent/40" : "bg-muted/20",
+                    )}
+                    style={
+                      isOver
+                        ? { borderColor: `color-mix(in oklch, ${color} 55%, transparent)` }
+                        : undefined
+                    }
+                  >
+                    <div className="flex items-center justify-between px-1.5 py-1">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="size-2 rounded-full"
+                          style={{ backgroundColor: color }}
+                        />
+                        <span className="text-xs font-semibold text-foreground">
+                          {col.label}
+                        </span>
                       </div>
-                      {task.description && (
-                        <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">
-                          {task.description}
-                        </p>
-                      )}
-                      {Array.isArray(task.acceptanceRefs) &&
-                        task.acceptanceRefs.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {(task.acceptanceRefs as string[]).map((ref) => (
-                              <Badge
-                                key={ref}
-                                variant="outline"
-                                className="font-mono text-[10px]"
-                              >
-                                {ref}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
+                      <span className="rounded-full bg-muted px-1.5 font-mono text-[11px] text-muted-foreground">
+                        {colTasks.length}
+                      </span>
                     </div>
-                  ))}
-                  {col.status === "BACKLOG" && (
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        if (newTitle.trim())
-                          create.mutate({
-                            featureRequestId: featureId,
-                            title: newTitle.trim(),
-                          });
-                      }}
-                      className="flex gap-1"
-                    >
-                      <Input
-                        value={newTitle}
-                        onChange={(e) => setNewTitle(e.target.value)}
-                        placeholder="Add task…"
-                        className="h-8 text-xs"
-                      />
-                      <Button type="submit" size="icon" variant="ghost" className="h-8 w-8">
-                        <Plus className="size-4" />
-                      </Button>
-                    </form>
-                  )}
-                </div>
-              );
-            })}
+
+                    {colTasks.length === 0 && !isOver && (
+                      <div className="rounded-lg border border-dashed border-border/60 py-6 text-center text-[11px] text-muted-foreground/60">
+                        No tasks
+                      </div>
+                    )}
+
+                    {colTasks.map((task) => {
+                      const done = task.status === "DONE";
+                      return (
+                        <div
+                          key={task.id}
+                          draggable
+                          onDragStart={() => setDragId(task.id)}
+                          onDragEnd={() => {
+                            setDragId(null);
+                            setOverCol(null);
+                          }}
+                          className={cn(
+                            "group cursor-grab rounded-lg border bg-card p-3 shadow-sm transition-all hover:border-border/80 hover:shadow-md active:cursor-grabbing",
+                            dragId === task.id && "opacity-40",
+                          )}
+                        >
+                          <div className="flex items-start gap-1.5">
+                            <GripVertical className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/40" />
+                            <p
+                              className={cn(
+                                "flex-1 text-sm font-medium leading-snug",
+                                done && "text-muted-foreground line-through",
+                              )}
+                            >
+                              {task.title}
+                            </p>
+                            <button
+                              onClick={() => del.mutate({ id: task.id })}
+                              className="opacity-0 transition-opacity group-hover:opacity-100"
+                              aria-label="Delete task"
+                            >
+                              <X className="size-3.5 text-muted-foreground hover:text-destructive" />
+                            </button>
+                          </div>
+                          {task.description && (
+                            <p className="mt-1.5 line-clamp-3 pl-5 text-xs text-muted-foreground">
+                              {task.description}
+                            </p>
+                          )}
+                          {Array.isArray(task.acceptanceRefs) &&
+                            task.acceptanceRefs.length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-1 pl-5">
+                                {(task.acceptanceRefs as string[]).map((ref) => (
+                                  <span
+                                    key={ref}
+                                    className="rounded border border-border/70 bg-muted px-1.5 font-mono text-[10px] text-muted-foreground"
+                                  >
+                                    {ref}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                        </div>
+                      );
+                    })}
+
+                    {col.status === "BACKLOG" && (
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (newTitle.trim())
+                            create.mutate({
+                              featureRequestId: featureId,
+                              title: newTitle.trim(),
+                            });
+                        }}
+                        className="flex gap-1"
+                      >
+                        <Input
+                          value={newTitle}
+                          onChange={(e) => setNewTitle(e.target.value)}
+                          placeholder="Add task…"
+                          className="h-8 text-xs"
+                        />
+                        <Button
+                          type="submit"
+                          size="icon"
+                          variant="ghost"
+                          className="size-8 shrink-0"
+                          disabled={create.isPending}
+                        >
+                          <Plus className="size-4" />
+                        </Button>
+                      </form>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </CardContent>

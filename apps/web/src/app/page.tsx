@@ -30,12 +30,15 @@ export default function Home() {
   return (
     <main className="flex flex-1 flex-col">
       {/* Nav */}
-      <header className="flex items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/60 bg-background/70 px-5 py-3 backdrop-blur-md sm:px-6">
+        <div className="flex items-center gap-2.5">
+          <div
+            className="flex size-7 items-center justify-center rounded-lg text-xs font-bold text-white shadow-sm"
+            style={{ backgroundImage: "linear-gradient(135deg, var(--primary), var(--brand-accent))" }}
+          >
             SF
           </div>
-          <span className="font-semibold tracking-tight">ShipFlow AI</span>
+          <span className="font-display font-semibold tracking-tight">ShipFlow AI</span>
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="sm">
@@ -49,11 +52,23 @@ export default function Home() {
 
       {/* Hero */}
       <section className="mx-auto max-w-3xl px-6 py-20 text-center sm:py-28">
-        <div className="mx-auto mb-5 inline-flex items-center rounded-full border px-3 py-1 text-xs text-muted-foreground">
-          AI-assisted product delivery
+        <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1">
+          <span className="size-1.5 animate-pulse rounded-full bg-brand-accent" />
+          <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+            AI-assisted product delivery
+          </span>
         </div>
-        <h1 className="text-4xl font-semibold tracking-tight sm:text-6xl">
-          From feature request to production — without losing the thread.
+        <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
+          From feature request to{" "}
+          <span
+            className="bg-clip-text text-transparent"
+            style={{
+              backgroundImage: "linear-gradient(120deg, var(--primary), var(--brand-accent))",
+            }}
+          >
+            production
+          </span>
+          — without losing the thread.
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-lg text-muted-foreground">
           ShipFlow turns a request into a PRD, breaks it into tasks, reviews the
@@ -74,13 +89,21 @@ export default function Home() {
 
       {/* The loop */}
       <section className="mx-auto max-w-5xl px-6 py-12">
-        <h2 className="text-center text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          The delivery loop
-        </h2>
+        <p className="eyebrow text-center">The delivery loop</p>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((s) => (
-            <div key={s.title} className="rounded-xl border bg-card p-5">
-              <s.icon className="size-5 text-primary" />
+          {STEPS.map((s, i) => (
+            <div
+              key={s.title}
+              className="group rounded-xl border border-border bg-card/60 p-5 transition-colors hover:border-primary/40"
+            >
+              <div className="flex items-center justify-between">
+                <span className="flex size-9 items-center justify-center rounded-lg bg-primary/12 text-primary transition-colors group-hover:bg-primary/20">
+                  <s.icon className="size-4.5" />
+                </span>
+                <span className="font-mono text-xs text-muted-foreground/50">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+              </div>
               <h3 className="mt-3 font-medium">{s.title}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{s.desc}</p>
             </div>

@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "../_components/status-badge";
+import { PipelineRail } from "@/components/pipeline-rail";
 import { PrdView } from "./prd-view";
 import { TaskBoard } from "./task-board";
 import { PullRequests } from "./pull-requests";
@@ -80,15 +81,22 @@ export function FeatureDetail({ featureId }: { featureId: string }) {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{feature.title}</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="eyebrow mb-1.5">Feature</p>
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+            {feature.title}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {feature.project?.name} · {feature.source.toLowerCase()}
+            {feature.project?.name} · {feature.source.toLowerCase()} ·{" "}
+            <span className="font-mono text-xs">{feature.id.slice(0, 8)}</span>
           </p>
         </div>
         <StatusBadge status={feature.status} />
       </div>
+
+      {/* Signature: where this feature is in the delivery loop */}
+      <PipelineRail status={feature.status} />
 
       <Card>
         <CardHeader>

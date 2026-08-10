@@ -30,6 +30,7 @@ export const featureRequestRouter = router({
         source: true,
         status: true,
         createdAt: true,
+        shippedAt: true,
         project: { select: { id: true, name: true } },
         prd: { select: { id: true } },
       },

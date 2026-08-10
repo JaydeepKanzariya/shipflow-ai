@@ -21,6 +21,9 @@ const METRIC_LABEL: Record<string, string> = {
   feature_requests: "Feature requests",
 };
 
+// Tier order — decides Upgrade vs Downgrade relative to the current plan.
+const PLAN_RANK: Record<string, number> = { FREE: 0, PRO: 1, SCALE: 2 };
+
 export function BillingSettings() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
@@ -184,24 +187,37 @@ export function BillingSettings() {
                   <Badge variant="success" className="w-full justify-center py-1.5">
                     Current plan
                   </Badge>
-                ) : p.id === "FREE" ? (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => cancel.mutate()}
-                    disabled={cancel.isPending || current === "FREE"}
-                  >
-                    Downgrade
-                  </Button>
                 ) : (
-                  <Button
-                    className="w-full"
-                    onClick={() => upgrade(p.id as "PRO" | "SCALE")}
-                    disabled={busy}
-                  >
-                    {busy && <Loader2 className="animate-spin" />}
-                    Upgrade
-                  </Button>
+                  (() => {
+                    const isUpgrade =
+                      (PLAN_RANK[p.id] ?? 0) > (PLAN_RANK[current] ?? 0);
+                    // Downgrading to Free = cancel; any other move goes through
+                    // the same upgrade/checkout path (mock or Razorpay).
+                    if (p.id === "FREE") {
+                      return (
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => cancel.mutate()}
+                          disabled={cancel.isPending}
+                        >
+                          {cancel.isPending && <Loader2 className="animate-spin" />}
+                          Downgrade
+                        </Button>
+                      );
+                    }
+                    return (
+                      <Button
+                        variant={isUpgrade ? "default" : "outline"}
+                        className="w-full"
+                        onClick={() => upgrade(p.id as "PRO" | "SCALE")}
+                        disabled={busy}
+                      >
+                        {busy && <Loader2 className="animate-spin" />}
+                        {isUpgrade ? "Upgrade" : "Downgrade"}
+                      </Button>
+                    );
+                  })()
                 )}
               </div>
             </div>

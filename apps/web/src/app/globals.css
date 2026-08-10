@@ -1,53 +1,80 @@
 @import "tailwindcss";
 
-/* ShipFlow design tokens — dark-first, product-grade.
-   Built on the shadcn CSS-variable convention, mapped into Tailwind v4's
-   @theme so utilities like bg-background / text-muted-foreground work. */
+/* ============================================================================
+   ShipFlow — "cool ink" design system. Dark-first, engineered, calm.
+   A deep blue-slate ground with layered elevation, an indigo-violet brand,
+   and a stage-color system where each status in the delivery loop owns a hue
+   (status encodes position, not decoration).
+   ============================================================================ */
 
 :root {
-  --radius: 0.625rem;
+  --radius: 0.7rem;
 
-  --background: oklch(0.99 0 0);
-  --foreground: oklch(0.18 0.01 265);
+  /* Light theme (kept sane; dark is the star). */
+  --background: oklch(0.985 0.002 265);
+  --foreground: oklch(0.2 0.02 265);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.01 265);
+  --card-foreground: oklch(0.2 0.02 265);
+  --elevated: oklch(0.97 0.004 265);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.01 265);
-  --primary: oklch(0.55 0.2 264);
-  --primary-foreground: oklch(0.98 0.01 264);
-  --secondary: oklch(0.96 0.01 265);
-  --secondary-foreground: oklch(0.22 0.02 265);
-  --muted: oklch(0.96 0.01 265);
+  --popover-foreground: oklch(0.2 0.02 265);
+  --primary: oklch(0.53 0.25 280);
+  --primary-foreground: oklch(0.99 0.01 280);
+  --brand-accent: oklch(0.62 0.14 210);
+  --secondary: oklch(0.96 0.006 265);
+  --secondary-foreground: oklch(0.24 0.02 265);
+  --muted: oklch(0.965 0.006 265);
   --muted-foreground: oklch(0.52 0.02 265);
-  --accent: oklch(0.96 0.01 265);
-  --accent-foreground: oklch(0.22 0.02 265);
+  --accent: oklch(0.95 0.02 280);
+  --accent-foreground: oklch(0.24 0.02 265);
   --destructive: oklch(0.58 0.22 27);
-  --destructive-foreground: oklch(0.98 0.01 27);
-  --border: oklch(0.91 0.01 265);
-  --input: oklch(0.91 0.01 265);
-  --ring: oklch(0.55 0.2 264);
+  --destructive-foreground: oklch(0.99 0.01 27);
+  --border: oklch(0.9 0.008 265);
+  --input: oklch(0.9 0.008 265);
+  --ring: oklch(0.53 0.25 280);
+
+  /* Stage colors — the delivery pipeline. */
+  --stage-discovery: oklch(0.68 0.03 265);
+  --stage-prd: oklch(0.6 0.17 285);
+  --stage-tasks: oklch(0.6 0.15 245);
+  --stage-dev: oklch(0.62 0.13 215);
+  --stage-review: oklch(0.7 0.15 75);
+  --stage-fix: oklch(0.63 0.19 35);
+  --stage-approved: oklch(0.62 0.16 150);
+  --stage-shipped: oklch(0.66 0.17 160);
 }
 
 .dark {
-  --background: oklch(0.16 0.01 265);
-  --foreground: oklch(0.96 0.01 265);
-  --card: oklch(0.2 0.012 265);
-  --card-foreground: oklch(0.96 0.01 265);
-  --popover: oklch(0.2 0.012 265);
-  --popover-foreground: oklch(0.96 0.01 265);
-  --primary: oklch(0.7 0.16 264);
-  --primary-foreground: oklch(0.16 0.02 265);
-  --secondary: oklch(0.26 0.015 265);
-  --secondary-foreground: oklch(0.96 0.01 265);
-  --muted: oklch(0.26 0.015 265);
-  --muted-foreground: oklch(0.68 0.02 265);
-  --accent: oklch(0.28 0.02 265);
-  --accent-foreground: oklch(0.96 0.01 265);
-  --destructive: oklch(0.62 0.21 25);
-  --destructive-foreground: oklch(0.98 0.01 27);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.7 0.16 264);
+  --background: oklch(0.155 0.018 274);
+  --foreground: oklch(0.97 0.005 265);
+  --card: oklch(0.192 0.02 274);
+  --card-foreground: oklch(0.97 0.005 265);
+  --elevated: oklch(0.235 0.022 274);
+  --popover: oklch(0.205 0.02 274);
+  --popover-foreground: oklch(0.97 0.005 265);
+  --primary: oklch(0.62 0.235 280);
+  --primary-foreground: oklch(0.99 0.01 280);
+  --brand-accent: oklch(0.8 0.14 205);
+  --secondary: oklch(0.26 0.02 274);
+  --secondary-foreground: oklch(0.97 0.005 265);
+  --muted: oklch(0.26 0.02 274);
+  --muted-foreground: oklch(0.71 0.025 270);
+  --accent: oklch(0.31 0.05 280);
+  --accent-foreground: oklch(0.98 0.005 265);
+  --destructive: oklch(0.66 0.19 25);
+  --destructive-foreground: oklch(0.99 0.01 27);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.62 0.235 280);
+
+  --stage-discovery: oklch(0.72 0.03 265);
+  --stage-prd: oklch(0.72 0.16 285);
+  --stage-tasks: oklch(0.72 0.14 245);
+  --stage-dev: oklch(0.75 0.12 215);
+  --stage-review: oklch(0.8 0.14 78);
+  --stage-fix: oklch(0.72 0.18 38);
+  --stage-approved: oklch(0.76 0.15 152);
+  --stage-shipped: oklch(0.78 0.16 162);
 }
 
 @theme inline {
@@ -55,10 +82,12 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-elevated: var(--elevated);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-brand-accent: var(--brand-accent);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -71,13 +100,23 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-stage-discovery: var(--stage-discovery);
+  --color-stage-prd: var(--stage-prd);
+  --color-stage-tasks: var(--stage-tasks);
+  --color-stage-dev: var(--stage-dev);
+  --color-stage-review: var(--stage-review);
+  --color-stage-fix: var(--stage-fix);
+  --color-stage-approved: var(--stage-approved);
+  --color-stage-shipped: var(--stage-shipped);
+
+  --font-display: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 6px);
 }
 
 @layer base {
@@ -87,6 +126,43 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-sans);
+    /* Aurora: a dual-tone iris→cyan glow bleeding down from the top edge. */
+    background-image:
+      radial-gradient(
+        75% 55% at 12% -12%,
+        color-mix(in oklch, var(--primary) 22%, transparent),
+        transparent 55%
+      ),
+      radial-gradient(
+        70% 50% at 92% -8%,
+        color-mix(in oklch, var(--brand-accent) 16%, transparent),
+        transparent 55%
+      );
+    background-attachment: fixed;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+  /* The "data layer" voice: monospaced, tracked-out, uppercase eyebrows. */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+}
+
+/* Respect reduced motion everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

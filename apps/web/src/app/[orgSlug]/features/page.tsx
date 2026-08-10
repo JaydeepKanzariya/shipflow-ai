@@ -15,8 +15,9 @@ export default async function FeaturesPage({
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
+          <p className="eyebrow mb-1.5">Requests</p>
           <h1 className="text-2xl font-semibold tracking-tight">Feature requests</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Idea → PRD → Tasks → Review → Ship.

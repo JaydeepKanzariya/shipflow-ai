@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MobileNav } from "./mobile-nav";
 
 type Org = { id: string; name: string; slug: string; role: string };
 
@@ -43,18 +44,20 @@ export function Topbar({ org, orgs }: { org: Org; orgs: Org[] }) {
       .toUpperCase() ?? "?";
 
   return (
-    <header className="flex h-14 items-center justify-between border-b px-4">
-      {/* Org switcher */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="gap-2 px-2 font-semibold">
-            <span className="flex h-6 w-6 items-center justify-center rounded bg-primary/15 text-xs text-primary">
-              {org.name[0]?.toUpperCase()}
-            </span>
-            {org.name}
-            <ChevronsUpDown className="size-4 text-muted-foreground" />
-          </Button>
-        </DropdownMenuTrigger>
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-border bg-background/80 px-3 backdrop-blur-md sm:px-4">
+      <div className="flex min-w-0 items-center gap-1">
+        <MobileNav orgSlug={org.slug} />
+        {/* Org switcher */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="max-w-[52vw] gap-2 px-2 font-semibold sm:max-w-none">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/15 text-xs text-primary">
+                {org.name[0]?.toUpperCase()}
+              </span>
+              <span className="truncate">{org.name}</span>
+              <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
+            </Button>
+          </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -65,12 +68,13 @@ export function Topbar({ org, orgs }: { org: Org; orgs: Org[] }) {
             </DropdownMenuItem>
           ))}
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => router.push("/onboarding")}>
-            <Plus className="size-4" />
-            New workspace
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            <DropdownMenuItem onClick={() => router.push("/onboarding")}>
+              <Plus className="size-4" />
+              New workspace
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       {/* User menu */}
       <DropdownMenu>
